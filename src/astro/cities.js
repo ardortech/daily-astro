@@ -1,12 +1,64 @@
-// Birth cities from the prototype: [id, lat, lon, fixed UTC offset in hours].
-// Fixed offsets ignore DST and historical zones — Phase 2 moves to IANA zones.
-// Display names live in src/i18n (cities.<id>).
+// Birth cities: id, region, lat, lon (east positive), IANA time zone.
+// Display names live in src/i18n (cities.<id>, cityRegions.<region>).
+// Ids are stored in profiles (profiles.city_id): add new ones, never rename.
+const C = (id, region, lat, lon, tz) => ({ id, region, lat, lon, tz });
+
 export const CITIES = [
-  ['taipei', 25.03, 121.56, 8], ['newtaipei', 25.01, 121.46, 8], ['taoyuan', 24.99, 121.30, 8],
-  ['taichung', 24.15, 120.67, 8], ['tainan', 22.99, 120.21, 8], ['kaohsiung', 22.63, 120.30, 8],
-  ['hsinchu', 24.80, 120.97, 8], ['hualien', 23.98, 121.60, 8], ['hongkong', 22.32, 114.17, 8],
-  ['macau', 22.20, 113.55, 8], ['shanghai', 31.23, 121.47, 8], ['beijing', 39.90, 116.40, 8],
-  ['singapore', 1.35, 103.82, 8], ['kualalumpur', 3.14, 101.69, 8], ['tokyo', 35.68, 139.69, 9],
-  ['seoul', 37.57, 126.98, 9], ['sydney', -33.87, 151.21, 10], ['losangeles', 34.05, -118.24, -8],
-  ['sanfrancisco', 37.77, -122.42, -8], ['newyork', 40.71, -74.01, -5], ['vancouver', 49.28, -123.12, -8],
-  ['london', 51.51, -0.13, 0]];
+  C('taipei', 'tw', 25.03, 121.56, 'Asia/Taipei'),
+  C('newtaipei', 'tw', 25.01, 121.46, 'Asia/Taipei'),
+  C('keelung', 'tw', 25.13, 121.74, 'Asia/Taipei'),
+  C('taoyuan', 'tw', 24.99, 121.30, 'Asia/Taipei'),
+  C('hsinchu', 'tw', 24.80, 120.97, 'Asia/Taipei'),
+  C('miaoli', 'tw', 24.56, 120.82, 'Asia/Taipei'),
+  C('taichung', 'tw', 24.15, 120.67, 'Asia/Taipei'),
+  C('changhua', 'tw', 24.08, 120.54, 'Asia/Taipei'),
+  C('chiayi', 'tw', 23.48, 120.45, 'Asia/Taipei'),
+  C('tainan', 'tw', 22.99, 120.21, 'Asia/Taipei'),
+  C('kaohsiung', 'tw', 22.63, 120.30, 'Asia/Taipei'),
+  C('pingtung', 'tw', 22.67, 120.49, 'Asia/Taipei'),
+  C('yilan', 'tw', 24.76, 121.75, 'Asia/Taipei'),
+  C('hualien', 'tw', 23.98, 121.60, 'Asia/Taipei'),
+  C('taitung', 'tw', 22.76, 121.15, 'Asia/Taipei'),
+  C('hongkong', 'hk', 22.32, 114.17, 'Asia/Hong_Kong'),
+  C('macau', 'mo', 22.20, 113.55, 'Asia/Macau'),
+  C('beijing', 'cn', 39.90, 116.40, 'Asia/Shanghai'),
+  C('shanghai', 'cn', 31.23, 121.47, 'Asia/Shanghai'),
+  C('guangzhou', 'cn', 23.13, 113.26, 'Asia/Shanghai'),
+  C('shenzhen', 'cn', 22.54, 114.06, 'Asia/Shanghai'),
+  C('xiamen', 'cn', 24.48, 118.09, 'Asia/Shanghai'),
+  C('fuzhou', 'cn', 26.07, 119.30, 'Asia/Shanghai'),
+  C('hangzhou', 'cn', 30.27, 120.16, 'Asia/Shanghai'),
+  C('nanjing', 'cn', 32.06, 118.80, 'Asia/Shanghai'),
+  C('chengdu', 'cn', 30.57, 104.07, 'Asia/Shanghai'),
+  C('wuhan', 'cn', 30.59, 114.31, 'Asia/Shanghai'),
+  C('singapore', 'sg', 1.35, 103.82, 'Asia/Singapore'),
+  C('kualalumpur', 'my', 3.14, 101.69, 'Asia/Kuala_Lumpur'),
+  C('penang', 'my', 5.41, 100.33, 'Asia/Kuala_Lumpur'),
+  C('kuching', 'my', 1.55, 110.34, 'Asia/Kuching'),
+  C('tokyo', 'jp', 35.68, 139.69, 'Asia/Tokyo'),
+  C('osaka', 'jp', 34.69, 135.50, 'Asia/Tokyo'),
+  C('fukuoka', 'jp', 33.59, 130.40, 'Asia/Tokyo'),
+  C('sapporo', 'jp', 43.06, 141.35, 'Asia/Tokyo'),
+  C('seoul', 'kr', 37.57, 126.98, 'Asia/Seoul'),
+  C('busan', 'kr', 35.18, 129.08, 'Asia/Seoul'),
+  C('losangeles', 'us', 34.05, -118.24, 'America/Los_Angeles'),
+  C('sanfrancisco', 'us', 37.77, -122.42, 'America/Los_Angeles'),
+  C('seattle', 'us', 47.61, -122.33, 'America/Los_Angeles'),
+  C('newyork', 'us', 40.71, -74.01, 'America/New_York'),
+  C('boston', 'us', 42.36, -71.06, 'America/New_York'),
+  C('chicago', 'us', 41.88, -87.63, 'America/Chicago'),
+  C('houston', 'us', 29.76, -95.37, 'America/Chicago'),
+  C('honolulu', 'us', 21.31, -157.86, 'Pacific/Honolulu'),
+  C('vancouver', 'ca', 49.28, -123.12, 'America/Vancouver'),
+  C('toronto', 'ca', 43.65, -79.38, 'America/Toronto'),
+  C('montreal', 'ca', 45.50, -73.57, 'America/Toronto'),
+  C('london', 'uk', 51.51, -0.13, 'Europe/London'),
+  C('manchester', 'uk', 53.48, -2.24, 'Europe/London'),
+  C('sydney', 'au', -33.87, 151.21, 'Australia/Sydney'),
+  C('melbourne', 'au', -37.81, 144.96, 'Australia/Melbourne'),
+  C('brisbane', 'au', -27.47, 153.03, 'Australia/Brisbane'),
+  C('perth', 'au', -31.95, 115.86, 'Australia/Perth'),
+];
+
+export const REGIONS = [...new Set(CITIES.map(c => c.region))];
+export const cityById = id => CITIES.find(c => c.id === id) ?? CITIES[0];

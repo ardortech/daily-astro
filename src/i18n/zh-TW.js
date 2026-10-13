@@ -19,14 +19,26 @@ export default {
   elements: ['火', '土', '風', '水'],
   weekdays: '日一二三四五六',
   phases: ['新月', '眉月', '上弦月', '盈凸月', '滿月', '虧凸月', '下弦月', '殘月'],
-  bodies: { sun: '太陽', moon: '月亮', rising: '上升' },
+  bodies: { sun: '太陽', moon: '月亮', sunApprox: '太陽（約）', moonApprox: '月亮（約）', rising: '上升' },
 
+  cityRegions: {
+    tw: '台灣', hk: '香港', mo: '澳門', cn: '中國大陸', sg: '新加坡', my: '馬來西亞',
+    jp: '日本', kr: '韓國', us: '美國', ca: '加拿大', uk: '英國', au: '澳洲',
+  },
   cities: {
-    taipei: '台北', newtaipei: '新北', taoyuan: '桃園', taichung: '台中', tainan: '台南',
-    kaohsiung: '高雄', hsinchu: '新竹', hualien: '花蓮', hongkong: '香港', macau: '澳門',
-    shanghai: '上海', beijing: '北京', singapore: '新加坡', kualalumpur: '吉隆坡', tokyo: '東京',
-    seoul: '首爾', sydney: '雪梨', losangeles: '洛杉磯', sanfrancisco: '舊金山', newyork: '紐約',
-    vancouver: '溫哥華', london: '倫敦',
+    taipei: '台北', newtaipei: '新北', keelung: '基隆', taoyuan: '桃園', hsinchu: '新竹',
+    miaoli: '苗栗', taichung: '台中', changhua: '彰化', chiayi: '嘉義', tainan: '台南',
+    kaohsiung: '高雄', pingtung: '屏東', yilan: '宜蘭', hualien: '花蓮', taitung: '台東',
+    hongkong: '香港', macau: '澳門',
+    beijing: '北京', shanghai: '上海', guangzhou: '廣州', shenzhen: '深圳', xiamen: '廈門',
+    fuzhou: '福州', hangzhou: '杭州', nanjing: '南京', chengdu: '成都', wuhan: '武漢',
+    singapore: '新加坡', kualalumpur: '吉隆坡', penang: '檳城', kuching: '古晉',
+    tokyo: '東京', osaka: '大阪', fukuoka: '福岡', sapporo: '札幌', seoul: '首爾', busan: '釜山',
+    losangeles: '洛杉磯', sanfrancisco: '舊金山', seattle: '西雅圖', newyork: '紐約', boston: '波士頓',
+    chicago: '芝加哥', houston: '休士頓', honolulu: '檀香山',
+    vancouver: '溫哥華', toronto: '多倫多', montreal: '蒙特婁',
+    london: '倫敦', manchester: '曼徹斯特',
+    sydney: '雪梨', melbourne: '墨爾本', brisbane: '布里斯本', perth: '伯斯',
   },
 
   // [theme, advice] for the house the moon transits (index 0 = 1st house)
@@ -136,6 +148,7 @@ export default {
     save: '儲存並看今日運勢',
     sample: '範例資料已預先填好，可直接修改。',
     saved: '已儲存你的星盤',
+    approxNote: (sun, moon) => `你出生那天${sun && moon ? '太陽和月亮都' : sun ? '太陽' : '月亮'}換了星座，沒有出生時間無法確定是哪一個。`,
   },
 
   install: {

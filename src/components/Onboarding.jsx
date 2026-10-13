@@ -1,8 +1,9 @@
 import { useState } from 'preact/hooks';
-import { CITIES, GLYPH, chartFor } from '../astro';
+import { CITIES, REGIONS, GLYPH, chartFor } from '../astro';
 import { t } from '../i18n';
 
 // Birth date / time / city → sun, moon, rising, recalculated live.
+// Without a birth time only sun + moon are kept (rising null).
 export function Onboarding({ initial, onSave }) {
   const [birth, setBirth] = useState(initial);
   const set = patch => setBirth(b => ({ ...b, ...patch }));
@@ -23,7 +24,11 @@ export function Onboarding({ initial, onSave }) {
           </label>
           <label for="bCity">{O.city}
             <select id="bCity" value={birth.city} onChange={e => set({ city: e.currentTarget.value })}>
-              {CITIES.map(([id]) => <option key={id} value={id}>{t.cities[id]}</option>)}
+              {REGIONS.map(r => (
+                <optgroup key={r} label={t.cityRegions[r]}>
+                  {CITIES.filter(c => c.region === r).map(({ id }) => <option key={id} value={id}>{t.cities[id]}</option>)}
+                </optgroup>
+              ))}
             </select>
           </label>
         </div>
@@ -31,10 +36,11 @@ export function Onboarding({ initial, onSave }) {
           <input type="checkbox" checked={birth.noTime} onChange={e => set({ noTime: e.currentTarget.checked })} /> {O.noTime}
         </label>
         <div class="result">
-          {[['sun', chart.sun], ['moon', chart.moon], ['rising', chart.rising]].map(([k, v]) => (
+          {[[chart.sunUncertain ? 'sunApprox' : 'sun', chart.sun], [chart.moonUncertain ? 'moonApprox' : 'moon', chart.moon], ['rising', chart.rising]].map(([k, v]) => (
             <div key={k}><div class="label">{t.bodies[k]}</div><div class="big">{v === null ? '—' : `${GLYPH[v]} ${t.signs[v]}`}</div></div>
           ))}
         </div>
+        {(chart.sunUncertain || chart.moonUncertain) && <p class="why">{O.approxNote(chart.sunUncertain, chart.moonUncertain)}</p>}
         <button class="primary" type="button" onClick={() => onSave({ ...birth, ...chart })}>{O.save}</button>
       </div>
       <p class="sample">{O.sample}</p>

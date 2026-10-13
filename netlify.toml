@@ -1,10 +1,15 @@
 [build]
   command = "npm run build"
   publish = "dist"
-  # functions = "netlify/functions"   # Phase 3–5: daily readings, push sender, author tracker
 
 [build.environment]
   NODE_VERSION = "22"
+
+# Netlify Functions + Scheduled Functions (daily-sky; Phases 3–5 add readings, push, author tracker).
+# The schedule lives in each function's `export const config`.
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
 
 # The service worker must never be cached by the browser/CDN, or updates stall.
 [[headers]]
