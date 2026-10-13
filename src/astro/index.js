@@ -30,21 +30,22 @@ export function dayBounds(dateStr, tz) {
   return [zonedToUtc(y, m, d, 0, 0, tz), zonedToUtc(y, m, d + 1, 0, 0, tz)];
 }
 
-// { sun, moon, rising, moonUncertain }. Without a birth time the chart uses local
-// noon, rising is null, and moonUncertain is true if the Moon changes sign at any
-// point during that local day (so the noon sign may be wrong).
+// { sun, moon, rising, sunUncertain, moonUncertain }. Without a birth time the chart
+// uses local noon, rising is null, and sun/moonUncertain is true if that body changes
+// sign at any point during that local day (so the noon sign may be wrong).
 export function chartFor(dateStr, timeStr, cityId, noTime) {
   const c = cityById(cityId);
   const [y, m, d] = ymd(dateStr);
   const [hh, mm] = noTime ? [12, 0] : timeStr.split(':').map(Number);
   const jd = julianDay(zonedToUtc(y, m, d, hh, mm, c.tz));
-  const moon = signOf(moonLon(jd));
-  let moonUncertain = false;
+  let sunUncertain = false, moonUncertain = false;
   if (noTime) {
-    const [start, end] = dayBounds(dateStr, c.tz);
-    moonUncertain = moonSignAt(start) !== moonSignAt(new Date(end.getTime() - 1));
+    const [start, end] = dayBounds(dateStr, c.tz).map(julianDay);
+    const last = end - 0.001 / 86400; // 1 ms before the next local midnight
+    sunUncertain = signOf(sunLon(start)) !== signOf(sunLon(last));
+    moonUncertain = signOf(moonLon(start)) !== signOf(moonLon(last));
   }
-  return { sun: signOf(sunLon(jd)), moon, rising: noTime ? null : signOf(ascendant(jd, c.lat, c.lon)), moonUncertain };
+  return { sun: signOf(sunLon(jd)), moon: signOf(moonLon(jd)), rising: noTime ? null : signOf(ascendant(jd, c.lat, c.lon)), sunUncertain, moonUncertain };
 }
 
 // First instant in [start, end) when the Moon enters a new sign, or null.

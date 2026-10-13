@@ -32,7 +32,7 @@ const CHARTS = [
 
 for (const [name, date, time, city, [sun, moon, rising], deg] of CHARTS) {
   test(`chart: ${name}`, () => {
-    assert.deepEqual(chartFor(date, time, city, false), { sun, moon, rising, moonUncertain: false });
+    assert.deepEqual(chartFor(date, time, city, false), { sun, moon, rising, sunUncertain: false, moonUncertain: false });
     const l = lons(date, time, city);
     near(l.sun, deg[0], 0.05, 'sun');
     near(l.moon, deg[1], 0.05, 'moon');
@@ -72,10 +72,17 @@ test('every city has coordinates and a valid IANA zone', () => {
   }
 });
 
-test('unknown birth time: sun + moon only, moon flagged when it changes sign that day', () => {
+test('unknown birth time: sun + moon only, each flagged when it changes sign that day', () => {
   // 1992-08-14 Taipei: Moon enters Pisces at 12:50 local.
-  assert.deepEqual(chartFor('1992-08-14', '09:20', 'taipei', true), { sun: LEO, moon: AQU, rising: null, moonUncertain: true });
-  assert.deepEqual(chartFor('1992-08-16', '', 'taipei', true), { sun: LEO, moon: PIS, rising: null, moonUncertain: false });
+  assert.deepEqual(chartFor('1992-08-14', '09:20', 'taipei', true), { sun: LEO, moon: AQU, rising: null, sunUncertain: false, moonUncertain: true });
+  assert.deepEqual(chartFor('1992-08-16', '', 'taipei', true), { sun: LEO, moon: PIS, rising: null, sunUncertain: false, moonUncertain: false });
+  // 2024-10-23 Taipei: Sun enters Scorpio at 07:15 local (22 Oct 23:15 UTC).
+  assert.deepEqual(chartFor('2024-10-23', '', 'taipei', true), { sun: SCO, moon: CAN, rising: null, sunUncertain: true, moonUncertain: false });
+  // Same instant is still 22 Oct in Los Angeles, so there the 23rd is a plain Scorpio day.
+  assert.equal(chartFor('2024-10-22', '', 'losangeles', true).sunUncertain, true);
+  assert.equal(chartFor('2024-10-23', '', 'losangeles', true).sunUncertain, false);
+  // With a birth time nothing is flagged.
+  assert.equal(chartFor('2024-10-23', '07:00', 'taipei', false).sunUncertain, false);
   const [s, e] = dayBounds('1992-08-14', 'Asia/Taipei');
   assert.equal(moonIngress(s, e).toISOString().slice(0, 16), '1992-08-14T04:50');
 });

@@ -41,7 +41,7 @@ async function push(supabase, userId) {
   const follows = store.get(K.follows, DEFAULTS.follows);
   const ok = ({ error }) => { if (error) throw error; };
 
-  ok(await supabase.from('profiles').upsert(toRow(userId, profile, prefs.pushTime)));
+  ok(await supabase.from('profiles').upsert(toRow(userId, profile, prefs)));
   const on = AUTHOR_IDS.filter(a => follows[a]);
   const off = AUTHOR_IDS.filter(a => !follows[a]);
   if (on.length) ok(await supabase.from('follows').upsert(on.map(author_id => ({ user_id: userId, author_id })), { ignoreDuplicates: true }));
@@ -60,14 +60,14 @@ async function pull(supabase, userId) {
   const followed = new Set(f.data.map(r => r.author_id));
   return {
     profile: fromRow(p.data),
-    pushTime: p.data.push_time.slice(0, 5),
+    prefs: { pushTime: p.data.push_time.slice(0, 5), daily: p.data.daily_enabled },
     follows: Object.fromEntries(AUTHOR_IDS.map(a => [a, followed.has(a)])),
   };
 }
 
-// App profile { date, time, city, noTime, sun, moon, moonUncertain, rising } ⇄ profiles row.
-// Without a birth time only sun + moon are stored.
-export function toRow(userId, p, pushTime) {
+// App profile { date, time, city, noTime, sun, moon, sunUncertain, moonUncertain, rising }
+// + prefs { pushTime, daily } ⇄ profiles row. Without a birth time only sun + moon are stored.
+export function toRow(userId, p, prefs = {}) {
   return {
     user_id: userId,
     birth_date: p.date,
@@ -75,9 +75,11 @@ export function toRow(userId, p, pushTime) {
     city_id: p.city,
     sun: p.sun,
     moon: p.moon,
+    sun_uncertain: !!p.sunUncertain,
     moon_uncertain: !!p.moonUncertain,
     rising: p.noTime ? null : p.rising,
-    push_time: pushTime || '07:30',
+    push_time: prefs.pushTime || '07:30',
+    daily_enabled: prefs.daily ?? true,
     time_zone: deviceTimeZone(),
   };
 }
@@ -91,6 +93,7 @@ export function fromRow(r) {
     noTime,
     sun: r.sun,
     moon: r.moon,
+    sunUncertain: r.sun_uncertain,
     moonUncertain: r.moon_uncertain,
     rising: noTime ? null : r.rising,
   };

@@ -19,7 +19,7 @@ export default {
   elements: ['火', '土', '風', '水'],
   weekdays: '日一二三四五六',
   phases: ['新月', '眉月', '上弦月', '盈凸月', '滿月', '虧凸月', '下弦月', '殘月'],
-  bodies: { sun: '太陽', moon: '月亮', moonApprox: '月亮（約）', rising: '上升' },
+  bodies: { sun: '太陽', moon: '月亮', sunApprox: '太陽（約）', moonApprox: '月亮（約）', rising: '上升' },
 
   cityRegions: {
     tw: '台灣', hk: '香港', mo: '澳門', cn: '中國大陸', sg: '新加坡', my: '馬來西亞',
@@ -148,7 +148,7 @@ export default {
     save: '儲存並看今日運勢',
     sample: '範例資料已預先填好，可直接修改。',
     saved: '已儲存你的星盤',
-    moonApproxNote: '你出生那天月亮換了星座，沒有出生時間無法確定是哪一個。',
+    approxNote: (sun, moon) => `你出生那天${sun && moon ? '太陽和月亮都' : sun ? '太陽' : '月亮'}換了星座，沒有出生時間無法確定是哪一個。`,
   },
 
   install: {

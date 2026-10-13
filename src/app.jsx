@@ -13,11 +13,11 @@ import { Toast } from './components/Toast.jsx';
 import { InstallGuide } from './components/InstallGuide.jsx';
 
 // Recompute the chart from the birth inputs, so caches written by older versions
-// (Phase 1 math, no moonUncertain) pick up the current engine.
+// (Phase 1 math, no sun/moonUncertain) pick up the current engine.
 const withChart = b => b && ({ ...b, ...chartFor(b.date, b.time, b.city, b.noTime) });
 
 export function App() {
-  // profile = birth inputs + computed { sun, moon, moonUncertain, rising }; null until onboarding is saved.
+  // profile = birth inputs + computed { sun, moon, sunUncertain, moonUncertain, rising }; null until onboarding is saved.
   // State starts from the localStorage cache; Supabase (lib/sync.js) is the source of truth.
   const [profile, setProfile] = useState(() => {
     const p = withChart(store.get(K.profile, null));
@@ -40,11 +40,11 @@ export function App() {
     toastTimer.current = setTimeout(() => setToastMsg(''), 2200);
   };
   const show = next => { setTab(profile || next === 'onboard' ? next : 'onboard'); window.scrollTo(0, 0); };
-  // Only push_time is stored server-side; `daily` stays on the device until Phase 4.
+  // pushTime → profiles.push_time, daily → profiles.daily_enabled.
   const setPrefs = p => {
-    const timeChanged = p.pushTime !== prefs.pushTime;
+    const changed = p.pushTime !== prefs.pushTime || p.daily !== prefs.daily;
     setPrefsState(p); store.set(K.prefs, p);
-    if (timeChanged) sync('push');
+    if (changed) sync('push');
   };
   const setFollow = (id, v) => { const f = { ...follows, [id]: v }; setFollows(f); store.set(K.follows, f); sync('push'); };
   const saveProfile = p => {
@@ -54,11 +54,11 @@ export function App() {
 
   // Sign in (anonymously on first launch) and reconcile with Supabase; again whenever we come back online.
   useEffect(() => {
-    const applyRemote = ({ profile: p, pushTime, follows: f }) => {
+    const applyRemote = ({ profile: p, prefs: remotePrefs, follows: f }) => {
       const hadProfile = !!store.get(K.profile, null);
       setProfile(p); store.set(K.profile, p);
       setFollows(f); store.set(K.follows, f);
-      const nextPrefs = { ...store.get(K.prefs, DEFAULTS.prefs), pushTime };
+      const nextPrefs = { ...store.get(K.prefs, DEFAULTS.prefs), ...remotePrefs };
       setPrefsState(nextPrefs); store.set(K.prefs, nextPrefs);
       if (!hadProfile) setTab('today');
     };

@@ -21,7 +21,7 @@ export function TodayTab({ profile, sky, reading: r, follows }) {
           <div class="date">{`${d.getFullYear()}.${pad(d.getMonth() + 1)}.${pad(d.getDate())} ・ ${t.weekdays[d.getDay()]}`}</div>
           <h1>{t.today.headline(S[profile.sun], theme)}</h1>
           <div class="trio">
-            <span>{t.bodies.sun} <b>{GLYPH[profile.sun]} {S[profile.sun]}</b></span>
+            <span>{profile.sunUncertain ? t.bodies.sunApprox : t.bodies.sun} <b>{GLYPH[profile.sun]} {S[profile.sun]}</b></span>
             <span>{profile.moonUncertain ? t.bodies.moonApprox : t.bodies.moon} <b>{GLYPH[profile.moon]} {S[profile.moon]}</b></span>
             {profile.rising !== null
               ? <span>{t.bodies.rising} <b>{GLYPH[profile.rising]} {S[profile.rising]}</b></span>

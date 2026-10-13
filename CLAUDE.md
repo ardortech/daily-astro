@@ -83,7 +83,8 @@ test/                      node:test tests (astro charts, time zones, row mappin
   hasn't reached Supabase (`astro.syncPending`) is pushed before anything is pulled. The Supabase
   session itself is stored by supabase-js (`sb-*` keys).
 - **Profiles:** without a birth time only sun + moon are stored (`birth_time`, `rising` null). If the
-  Moon changes sign during that local day, `moon_uncertain` is set and the UI shows 月亮（約）.
+  Sun or Moon changes sign during that local day, `sun_uncertain` / `moon_uncertain` is set and the
+  UI shows 太陽（約）/ 月亮（約）. The 每日運勢 switch is `daily_enabled`, the push time `push_time`.
 - **City ids** are stored in `profiles.city_id`: add cities, never rename or remove an id.
 - **Database:** every table has RLS, explicit grants (tables aren't exposed by default) and
   own-row policies on `(select auth.uid()) = user_id`. New migrations go in `supabase/migrations/`.
@@ -114,6 +115,5 @@ test/                      node:test tests (astro charts, time zones, row mappin
 ## Known limitations
 
 - Birth places are limited to the city list (no search / custom coordinates).
-- Without a birth time the sun sign uses local noon; on a sun-sign change day it isn't flagged (only the moon is).
 - 開啟通知 only shows a demo toast; the push handler in the service worker is a stub.
 - Feed items are static fixtures.

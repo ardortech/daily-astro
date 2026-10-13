@@ -9,16 +9,20 @@ create table if not exists public.profiles (
   city_id        text not null,
   sun            smallint not null check (sun between 0 and 11),
   moon           smallint not null check (moon between 0 and 11),
+  sun_uncertain  boolean not null default false,
   moon_uncertain boolean not null default false,
   rising         smallint check (rising between 0 and 11),
   push_time      time not null default '07:30',
+  daily_enabled  boolean not null default true,
   time_zone      text not null default 'Asia/Taipei',
   created_at     timestamptz not null default now(),
   updated_at     timestamptz not null default now(),
   constraint rising_needs_birth_time check (rising is null or birth_time is not null)
 );
 
+comment on column public.profiles.sun_uncertain is 'No birth time and the Sun changed sign that day; UI shows 太陽（約）.';
 comment on column public.profiles.moon_uncertain is 'No birth time and the Moon changed sign that day; UI shows 月亮（約）.';
+comment on column public.profiles.daily_enabled is 'The 每日運勢 switch: false = no daily push.';
 comment on column public.profiles.time_zone is 'Device IANA zone, used to send the daily push at push_time local time.';
 
 -- Keep updated_at current on every update.
@@ -38,8 +42,8 @@ create trigger profiles_set_updated_at
   before update on public.profiles
   for each row execute function public.set_updated_at();
 
--- The Phase 4 push sender scans by time zone + push time.
-create index if not exists profiles_push_idx on public.profiles (time_zone, push_time);
+-- The Phase 4 push sender scans by time zone + push time, skipping users who turned it off.
+create index if not exists profiles_push_idx on public.profiles (time_zone, push_time) where daily_enabled;
 
 -- Access: signed-in users (anonymous users have the authenticated role) see only their own row.
 alter table public.profiles enable row level security;

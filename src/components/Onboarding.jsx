@@ -36,11 +36,11 @@ export function Onboarding({ initial, onSave }) {
           <input type="checkbox" checked={birth.noTime} onChange={e => set({ noTime: e.currentTarget.checked })} /> {O.noTime}
         </label>
         <div class="result">
-          {[['sun', chart.sun], [chart.moonUncertain ? 'moonApprox' : 'moon', chart.moon], ['rising', chart.rising]].map(([k, v]) => (
+          {[[chart.sunUncertain ? 'sunApprox' : 'sun', chart.sun], [chart.moonUncertain ? 'moonApprox' : 'moon', chart.moon], ['rising', chart.rising]].map(([k, v]) => (
             <div key={k}><div class="label">{t.bodies[k]}</div><div class="big">{v === null ? '—' : `${GLYPH[v]} ${t.signs[v]}`}</div></div>
           ))}
         </div>
-        {chart.moonUncertain && <p class="why">{O.moonApproxNote}</p>}
+        {(chart.sunUncertain || chart.moonUncertain) && <p class="why">{O.approxNote(chart.sunUncertain, chart.moonUncertain)}</p>}
         <button class="primary" type="button" onClick={() => onSave({ ...birth, ...chart })}>{O.save}</button>
       </div>
       <p class="sample">{O.sample}</p>
