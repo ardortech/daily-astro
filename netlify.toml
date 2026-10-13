@@ -7,9 +7,13 @@
 
 # Netlify Functions + Scheduled Functions (daily-sky; Phases 3–5 add readings, push, author tracker).
 # The schedule lives in each function's `export const config`.
+# These are v2 functions (default export returning a Response): Netlify always packages them
+# with nft, keeping node_modules external, so `node_bundler` would have no effect.
 [functions]
   directory = "netlify/functions"
-  node_bundler = "esbuild"
+  # src/astro loads astronomy-engine's CommonJS build in Node (src/astro/engine.node.cjs).
+  # nft can't see that require after transpiling, so ship the package explicitly.
+  included_files = ["node_modules/astronomy-engine/package.json", "node_modules/astronomy-engine/astronomy.js"]
 
 # The service worker must never be cached by the browser/CDN, or updates stall.
 [[headers]]

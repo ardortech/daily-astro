@@ -43,7 +43,7 @@ copy and look. The screens are onboarding (birth date, time, city,
 npm run dev       # local dev server (service worker disabled in dev)
 npm run build     # production build → dist/ (what Netlify runs)
 npm run preview   # serve dist/ locally, service worker active
-npm test          # node:test unit tests (src/astro, src/lib/sync row mapping)
+npm test          # node:test unit tests (src/astro, src/lib/sync row mapping, functions load in plain Node)
 npm run icons     # redraw public/icons/*.png (python3 + Pillow)
 ```
 
@@ -86,6 +86,10 @@ test/                      node:test tests (astro charts, time zones, row mappin
   Sun or Moon changes sign during that local day, `sun_uncertain` / `moon_uncertain` is set and the
   UI shows 太陽（約）/ 月亮（約）. The 每日運勢 switch is `daily_enabled`, the push time `push_time`.
 - **City ids** are stored in `profiles.city_id`: add cities, never rename or remove an id.
+- **astronomy-engine** is imported as `#astronomy-engine` (package.json `imports`), never by its bare
+  name: Node gets its CommonJS build (`src/astro/engine.node.cjs`), the browser its ESM build. The
+  functions runtime doesn't detect ESM syntax in `.js` files, so the package's ESM build fails there.
+  `test/functions.test.js` loads each function in plain Node with detection off.
 - **Database:** every table has RLS, explicit grants (tables aren't exposed by default) and
   own-row policies on `(select auth.uid()) = user_id`. New migrations go in `supabase/migrations/`.
 - Service worker: bump nothing by hand. The cache version is a hash of the built file list.

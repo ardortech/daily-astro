@@ -6,6 +6,12 @@
   "engines": {
     "node": ">=22.12.0"
   },
+  "imports": {
+    "#astronomy-engine": {
+      "node": "./src/astro/engine.node.cjs",
+      "default": "astronomy-engine"
+    }
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",

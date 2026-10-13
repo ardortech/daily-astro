@@ -1,7 +1,7 @@
 // Chart + daily reading logic. Positions come from astronomy-engine (./math.js);
 // birth times are converted to UTC with the city's IANA zone (./tz.js).
 // Returns indices only; all wording lives in src/i18n.
-import { Search, MakeTime } from 'astronomy-engine';
+import { Search, MakeTime } from '#astronomy-engine';
 import { julianDay, sunLon, moonLon, ascendant, signOf, norm } from './math.js';
 import { CITIES, REGIONS, cityById } from './cities.js';
 import { zonedToUtc, dateIn } from './tz.js';
