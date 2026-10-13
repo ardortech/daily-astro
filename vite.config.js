@@ -4,7 +4,7 @@ import { createHash } from 'node:crypto';
 import { readFileSync, readdirSync } from 'node:fs';
 
 // Static files from public/ that belong to the app shell.
-const PUBLIC_SHELL = ['/manifest.webmanifest', ...readdirSync('public/icons').filter(f => f.endsWith('.png')).map(f => `/icons/${f}`)];
+const PUBLIC_SHELL = ['/manifest.webmanifest', '/favicon.ico', ...readdirSync('public/icons').filter(f => f.endsWith('.png')).map(f => `/icons/${f}`)];
 
 // Emits /sw.js with the exact list of built files to precache, and a version
 // derived from that list so each deploy gets a fresh cache.

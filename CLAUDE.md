@@ -35,13 +35,14 @@ npm run dev       # local dev server (service worker disabled in dev)
 npm run build     # production build → dist/ (what Netlify runs)
 npm run preview   # serve dist/ locally, service worker active
 npm test          # node:test unit tests for src/astro
-npm run icons     # redraw public/icons/*.png (python3 + Pillow)
+npm run icons     # rebuild public/icons/*.png + favicon.ico from design/icon-source.png (python3 + Pillow)
 ```
 
 ## Layout
 
 ```
 design/prototype.html      approved prototype (reference only, not shipped)
+design/icon-source.png     app icon master (2000², white zodiac wheel on navy #1A2140)
 index.html                 app entry: manifest link, iOS Home Screen meta tags
 src/main.jsx               render + service-worker registration (prod only)
 src/app.jsx                app state: profile, tab, follows, prefs, toast
@@ -52,7 +53,7 @@ src/astro/                 chart + reading logic; returns indices, never words
 src/data/sample.js         prototype fixture data (feed, authors' URLs, sample birth)
 src/lib/                   localStorage wrapper, iOS/standalone detection
 sw/sw.js                   service-worker template; vite.config.js injects the precache list → dist/sw.js
-public/                    manifest.webmanifest, icons (192, 512, maskable 512, apple-touch 180)
+public/                    manifest.webmanifest, favicon.ico, icons (192, 512, maskable 512, apple-touch 180, favicon 16/32)
 test/                      node:test tests
 ```
 

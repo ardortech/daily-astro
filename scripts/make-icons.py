@@ -1,47 +1,57 @@
-"""Draws the app icons into public/icons/. Run: npm run icons (needs Pillow).
+"""Builds the app icons in public/ from design/icon-source.png. Run: npm run icons (needs Pillow).
 
-Night-sky square with the brass zodiac ring from the Today wheel and a gold
-crescent moon. Maskable variant keeps everything inside the 80% safe zone.
+The source is a 2000×2000 white zodiac wheel on navy #1A2140.
+- apple-touch-icon 180, icon-192, icon-512: the source, resized.
+- icon-maskable-512: wheel scaled to 75% on navy padding, so Android's circle
+  crop (safe zone = 80% circle) never reaches the glyphs.
+- favicon-16/32 (+ favicon.ico): only the centre circle-and-drop, strokes
+  thickened so they survive at 16–32 px.
 """
-import math
-from PIL import Image, ImageDraw
+from PIL import Image, ImageFilter
 
-NIGHT = (26, 33, 64)
-BRASS = (227, 188, 116)
-RING = (227, 188, 116, 150)
-SS = 4  # supersample factor
+NAVY = (0x1A, 0x21, 0x40)
+SRC = 'design/icon-source.png'
+OUT = 'public/icons/'
 
-
-def draw(size, scale):
-    S = size * SS
-    img = Image.new('RGBA', (S, S), NIGHT + (255,))
-    d = ImageDraw.Draw(img)
-    c = S / 2
-    R = S * 0.36 * scale
-    w = max(2, int(S * 0.012))
-    # outer + inner ring with 12 sign ticks
-    for r in (R, R * 0.74):
-        d.ellipse([c - r, c - r, c + r, c + r], outline=RING, width=w)
-    for i in range(12):
-        a = math.radians(i * 30 + 15)
-        d.line([c + math.cos(a) * R * 0.74, c - math.sin(a) * R * 0.74, c + math.cos(a) * R, c - math.sin(a) * R], fill=RING, width=w)
-    # crescent: gold disc minus offset night disc
-    m = R * 0.5
-    d.ellipse([c - m, c - m, c + m, c + m], fill=BRASS)
-    o = m * 0.42
-    d.ellipse([c - m + o, c - m - o * 0.35, c + m + o, c + m - o * 0.35], fill=NIGHT)
-    # small star dot on the ring, like the moon marker in the wheel
-    sa = math.radians(52)
-    sr = R * 0.87
-    s = R * 0.07
-    sx, sy = c + math.cos(sa) * sr, c - math.sin(sa) * sr
-    d.ellipse([sx - s, sy - s, sx + s, sy + s], fill=(238, 240, 248))
-    return img.resize((size, size), Image.LANCZOS).convert('RGB')
+src = Image.open(SRC).convert('RGB')
+W = src.width
 
 
-out = 'public/icons/'
-draw(192, 1).save(out + 'icon-192.png', optimize=True)
-draw(512, 1).save(out + 'icon-512.png', optimize=True)
-draw(512, 0.8).save(out + 'icon-maskable-512.png', optimize=True)
-draw(180, 1).save(out + 'apple-touch-icon.png', optimize=True)
+def resized(size):
+    return src.resize((size, size), Image.LANCZOS)
+
+
+def maskable(size, scale=0.75):
+    canvas = Image.new('RGB', (size, size), NAVY)
+    inner = round(size * scale)
+    canvas.paste(resized(inner), ((size - inner) // 2, (size - inner) // 2))
+    return canvas
+
+
+# Centre motif: circle with its drop, centred at about (1000, 983) in the source,
+# 484 px across, strokes ~7 px wide.
+CENTER = (W * 0.5, W * 0.4915)
+
+
+def favicon(size, half, grow):
+    """half: half-width of the source crop; grow: px to thicken strokes by on each side."""
+    cx, cy = CENTER
+    box = tuple(round(v) for v in (cx - half, cy - half, cx + half, cy + half))
+    mask = src.crop(box).convert('L').point(lambda v: 255 if v > 128 else 0)
+    mask = mask.filter(ImageFilter.MaxFilter(2 * grow + 1)).filter(ImageFilter.GaussianBlur(1.5))
+    img = Image.new('RGB', mask.size, NAVY)
+    img.paste((255, 255, 255), mask=mask)
+    return img.resize((size, size), Image.LANCZOS)
+
+
+resized(180).save(OUT + 'apple-touch-icon.png', optimize=True)
+resized(192).save(OUT + 'icon-192.png', optimize=True)
+resized(512).save(OUT + 'icon-512.png', optimize=True)
+maskable(512).save(OUT + 'icon-maskable-512.png', optimize=True)
+f32 = favicon(32, 290, 14)
+f16 = favicon(16, 275, 22)
+f32.save(OUT + 'favicon-32.png', optimize=True)
+f16.save(OUT + 'favicon-16.png', optimize=True)
+# /favicon.ico is what browsers fetch when nothing else is declared.
+f32.save('public/favicon.ico', sizes=[(16, 16), (32, 32)], append_images=[f16])
 print('icons written')
