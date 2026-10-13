@@ -8,6 +8,19 @@ Primary audience: iPhone users in Taiwan, using it from the Home Screen.
 copy and look. The screens are onboarding (birth date, time, city,
 「我不知道出生時間」) and three tabs: 今日 / 名師更新 / 通知. Scores are 1–5 stars (★★★☆☆).
 
+## Production URL
+
+**https://astro.klchang.com.tw** (custom domain on Netlify; set it as the primary domain so the
+`*.netlify.app` URL redirects to it).
+
+- The manifest keeps `start_url` and `scope` as `"/"`, and `id` too. Browsers resolve them against the
+  manifest URL, so in production they become `https://astro.klchang.com.tw/`. Don't make them
+  absolute: an absolute start_url on another origin is ignored, which would break Netlify deploy
+  previews.
+- `index.html` has `<link rel="canonical">` pointing at the production URL.
+- Web push (Phase 4) is tied to this origin. Subscriptions and the Home Screen install don't carry
+  over if the domain changes, so treat it as permanent.
+
 ## Stack
 
 - **Vite + Preact** (JSX, hooks). No router; tabs are app state.
