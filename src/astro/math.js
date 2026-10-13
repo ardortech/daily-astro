@@ -1,7 +1,8 @@
 // Ephemeris helpers backed by astronomy-engine (VSOP87 / ELP, IAU 2000B nutation).
 // Longitudes are geocentric, apparent, tropical ecliptic of date — what astrology uses.
 // Signatures are the same as the Phase 1 low-precision port.
-import { MakeTime, SunPosition, EclipticGeoMoon, SiderealTime, e_tilt } from 'astronomy-engine';
+// Imported via "#astronomy-engine" (package.json imports): see engine.node.cjs.
+import { MakeTime, SunPosition, EclipticGeoMoon, SiderealTime, e_tilt } from '#astronomy-engine';
 
 export const D2R = Math.PI / 180;
 export const norm = d => ((d % 360) + 360) % 360;
