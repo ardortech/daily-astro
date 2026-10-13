@@ -22,7 +22,7 @@ export function TodayTab({ profile, sky, reading: r, follows }) {
           <h1>{t.today.headline(S[profile.sun], theme)}</h1>
           <div class="trio">
             <span>{t.bodies.sun} <b>{GLYPH[profile.sun]} {S[profile.sun]}</b></span>
-            <span>{t.bodies.moon} <b>{GLYPH[profile.moon]} {S[profile.moon]}</b></span>
+            <span>{profile.moonUncertain ? t.bodies.moonApprox : t.bodies.moon} <b>{GLYPH[profile.moon]} {S[profile.moon]}</b></span>
             {profile.rising !== null
               ? <span>{t.bodies.rising} <b>{GLYPH[profile.rising]} {S[profile.rising]}</b></span>
               : <span>{t.today.risingUnknown}</span>}

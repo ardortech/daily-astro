@@ -25,7 +25,16 @@ copy and look. The screens are onboarding (birth date, time, city,
 
 - **Vite + Preact** (JSX, hooks). No router; tabs are app state.
 - **Netlify** hosting (`netlify.toml`). Phases 3–5 add Netlify Functions + Scheduled Functions.
-- **Supabase Postgres**, from Phase 2 (profiles, readings, push subscriptions, author posts).
+- **Supabase Postgres** (`@supabase/supabase-js`): profiles, follows, daily_sky; later readings, push
+  subscriptions, author posts. Each device signs in with **anonymous auth** on first launch.
+- **astronomy-engine** for sun/moon/ascendant; birth times → UTC via the city's IANA zone (`Intl`).
+
+## Environment variables (set in Netlify)
+
+- `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`: browser client. Without them (local dev, no
+  `.env.local`) the app runs on localStorage only.
+- `SUPABASE_SECRET_KEY`: Netlify Functions only (bypasses RLS). Never prefix it with `VITE_`.
+  Functions read the URL from `SUPABASE_URL`, falling back to `VITE_SUPABASE_URL`.
 - Node 22 (`.nvmrc`, `NODE_VERSION` in netlify.toml; Vite 8 needs ≥ 22.12).
 
 ## Commands
@@ -34,7 +43,7 @@ copy and look. The screens are onboarding (birth date, time, city,
 npm run dev       # local dev server (service worker disabled in dev)
 npm run build     # production build → dist/ (what Netlify runs)
 npm run preview   # serve dist/ locally, service worker active
-npm test          # node:test unit tests for src/astro
+npm test          # node:test unit tests (src/astro, src/lib/sync row mapping)
 npm run icons     # redraw public/icons/*.png (python3 + Pillow)
 ```
 
@@ -48,12 +57,14 @@ src/app.jsx                app state: profile, tab, follows, prefs, toast
 src/components/            one component per screen/part (TodayTab, FeedTab, NotifyTab, Onboarding, …)
 src/i18n/zh-TW.js          ALL user-facing strings; functions where values are interpolated
 src/i18n/index.js          exports `t` (single locale for now)
-src/astro/                 chart + reading logic; returns indices, never words
+src/astro/                 chart + reading logic (astronomy-engine, IANA tz, ~50 cities); indices, never words
 src/data/sample.js         prototype fixture data (feed, authors' URLs, sample birth)
-src/lib/                   localStorage wrapper, iOS/standalone detection
+src/lib/                   localStorage cache, Supabase client + sync, iOS/standalone detection
+netlify/functions/         Netlify (Scheduled) Functions: daily-sky.mjs (00:00 Asia/Taipei → daily_sky)
+supabase/migrations/       SQL migrations, run by hand in the Supabase SQL Editor in filename order
 sw/sw.js                   service-worker template; vite.config.js injects the precache list → dist/sw.js
 public/                    manifest.webmanifest, icons (192, 512, maskable 512, apple-touch 180)
-test/                      node:test tests
+test/                      node:test tests (astro charts, time zones, row mapping)
 ```
 
 ## Conventions
@@ -66,8 +77,16 @@ test/                      node:test tests
 - **Styles:** `src/styles.css` starts with the prototype CSS copied verbatim. Put PWA-only
   additions in the marked section at the bottom. Colours are tokens on `:root`, with a dark theme.
 - **Never store or display author forecast text.** Only title, date and link (copyright).
-- **Storage keys:** `astro.profile`, `astro.follows`, `astro.prefs`, `astro.installGuideDismissed`.
-  They stay in localStorage until Phase 2 syncs them to Supabase.
+- **Storage keys:** `astro.profile`, `astro.follows`, `astro.prefs`, `astro.installGuideDismissed`,
+  `astro.syncPending`. localStorage is the offline cache; Supabase is the source of truth.
+  `src/lib/sync.js` pushes after every change and pulls at launch / when back online; a change that
+  hasn't reached Supabase (`astro.syncPending`) is pushed before anything is pulled. The Supabase
+  session itself is stored by supabase-js (`sb-*` keys).
+- **Profiles:** without a birth time only sun + moon are stored (`birth_time`, `rising` null). If the
+  Moon changes sign during that local day, `moon_uncertain` is set and the UI shows 月亮（約）.
+- **City ids** are stored in `profiles.city_id`: add cities, never rename or remove an id.
+- **Database:** every table has RLS, explicit grants (tables aren't exposed by default) and
+  own-row policies on `(select auth.uid()) = user_id`. New migrations go in `supabase/migrations/`.
 - Service worker: bump nothing by hand. The cache version is a hash of the built file list.
   `/sw.js` is served with `Cache-Control: no-cache`.
 
@@ -76,10 +95,10 @@ test/                      node:test tests
 1. **Skeleton PWA** ✅: Vite + Preact, prototype screens as components on sample data,
    prototype sun/moon/rising math ported to `src/astro/`, manifest + app-shell service worker,
    push stub, iOS 「分享 → 加入主畫面」 guide, Netlify build.
-2. **Astro engine + profiles:** replace `src/astro/math.js` with `astronomy-engine`
+2. **Astro engine + profiles** ✅: replace `src/astro/math.js` with `astronomy-engine`
    (keep `chartFor` / `sky` / `reading` signatures). Use real IANA time zones per city,
    including historical DST (the current cities table has fixed UTC offsets). Store profiles in
-   Supabase (anonymous auth or device id) instead of localStorage.
+   Supabase (anonymous auth) instead of localStorage. daily_sky written by a Scheduled Function.
 3. **Daily readings:** a rule engine picks the day's factors (moon house, aspects, lucky colour/item,
    1–5 star scores), then Claude Haiku writes the zh-TW text. Make 144 readings/day (12 sun signs ×
    12 rising signs, "unknown rising" falls back to sun), generated once by a Scheduled Function and
@@ -92,9 +111,9 @@ test/                      node:test tests
    poll Astrology Zone for Susan Miller (monthly). Store **title / date / link only, never forecast
    text**. A new post pushes to followers and replaces `src/data/sample.js`.
 
-## Known Phase 1 limitations
+## Known limitations
 
-- Astro math is the prototype's low-precision series. Fine for signs, but the moon can be off by a fraction of a degree, so near a sign boundary the sign can be wrong.
-- City time zones are fixed offsets (no DST, no historical changes).
+- Birth places are limited to the city list (no search / custom coordinates).
+- Without a birth time the sun sign uses local noon; on a sun-sign change day it isn't flagged (only the moon is).
 - 開啟通知 only shows a demo toast; the push handler in the service worker is a stub.
 - Feed items are static fixtures.

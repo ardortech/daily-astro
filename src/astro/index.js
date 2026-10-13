@@ -1,9 +1,12 @@
-// Chart + daily reading logic ported from design/prototype.html.
+// Chart + daily reading logic. Positions come from astronomy-engine (./math.js);
+// birth times are converted to UTC with the city's IANA zone (./tz.js).
 // Returns indices only; all wording lives in src/i18n.
+import { Search, MakeTime } from 'astronomy-engine';
 import { julianDay, sunLon, moonLon, ascendant, signOf, norm } from './math.js';
-import { CITIES } from './cities.js';
+import { CITIES, REGIONS, cityById } from './cities.js';
+import { zonedToUtc, dateIn } from './tz.js';
 
-export { CITIES };
+export { CITIES, REGIONS, cityById, zonedToUtc, dateIn };
 export const GLYPH = ['♈', '♉', '♊', '♋', '♌', '♍', '♎', '♏', '♐', '♑', '♒', '♓'];
 // Element of a sign index is ELEMENT[sign % 4]: 0 fire, 1 earth, 2 air, 3 water.
 export const elementOf = sign => sign % 4;
@@ -17,13 +20,55 @@ export const ITEM_COUNT = 4;
 // Aspect index = sign distance 0..6 (合相 … 對分相); tense ones flip the push copy.
 export const TENSE_ASPECTS = [3, 6];
 
+const ymd = s => s.split('-').map(Number);
+const moonSignAt = date => signOf(moonLon(julianDay(date)));
+
+// Start and end (exclusive) of calendar day dateStr in tz, as UTC Dates.
+// DST days are 23 or 25 hours long.
+export function dayBounds(dateStr, tz) {
+  const [y, m, d] = ymd(dateStr);
+  return [zonedToUtc(y, m, d, 0, 0, tz), zonedToUtc(y, m, d + 1, 0, 0, tz)];
+}
+
+// { sun, moon, rising, moonUncertain }. Without a birth time the chart uses local
+// noon, rising is null, and moonUncertain is true if the Moon changes sign at any
+// point during that local day (so the noon sign may be wrong).
 export function chartFor(dateStr, timeStr, cityId, noTime) {
-  const c = CITIES.find(x => x[0] === cityId) ?? CITIES[0];
-  const [y, m, d] = dateStr.split('-').map(Number);
+  const c = cityById(cityId);
+  const [y, m, d] = ymd(dateStr);
   const [hh, mm] = noTime ? [12, 0] : timeStr.split(':').map(Number);
-  const utc = new Date(Date.UTC(y, m - 1, d, hh - c[3], mm));
-  const jd = julianDay(utc);
-  return { sun: signOf(sunLon(jd)), moon: signOf(moonLon(jd)), rising: noTime ? null : signOf(ascendant(jd, c[1], c[2])) };
+  const jd = julianDay(zonedToUtc(y, m, d, hh, mm, c.tz));
+  const moon = signOf(moonLon(jd));
+  let moonUncertain = false;
+  if (noTime) {
+    const [start, end] = dayBounds(dateStr, c.tz);
+    moonUncertain = moonSignAt(start) !== moonSignAt(new Date(end.getTime() - 1));
+  }
+  return { sun: signOf(sunLon(jd)), moon, rising: noTime ? null : signOf(ascendant(jd, c.lat, c.lon)), moonUncertain };
+}
+
+// First instant in [start, end) when the Moon enters a new sign, or null.
+// The Moon moves ~13°/day, so a day holds at most one ingress.
+export function moonIngress(start, end) {
+  const s = moonLon(julianDay(start));
+  if (signOf(s) === moonSignAt(end)) return null;
+  const target = (signOf(s) + 1) * 30;
+  // Search wants a function that rises through zero at the ingress.
+  const f = time => ((moonLon(julianDay(time.date)) - target + 540) % 360) - 180;
+  const hit = Search(f, MakeTime(start), MakeTime(end), { dt_tolerance_seconds: 1 });
+  return hit ? hit.date : null;
+}
+
+// Rounded to the numeric(8,4) columns, kept below 360.
+const deg4 = x => +x.toFixed(4) % 360;
+
+// One row for the daily_sky table: the sky at 00:00 of dateStr in tz.
+// phase is the Moon–Sun elongation in degrees (0 new, 180 full; see phaseIndex).
+export function dailySky(dateStr, tz = 'Asia/Taipei') {
+  const [start, end] = dayBounds(dateStr, tz);
+  const s = sky(start);
+  const change = moonIngress(start, end);
+  return { date: dateStr, moon_sign: s.moon, moon_lon: deg4(s.mLon), phase: deg4(s.phase), moon_sign_change_at: change && change.toISOString() };
 }
 
 export function hash(s) { let h = 2166136261; for (const ch of s) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; }

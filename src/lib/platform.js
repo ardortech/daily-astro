@@ -12,3 +12,8 @@ export function isIOS() {
 export function isIOSSafari() {
   return isIOS() && !/CriOS|FxiOS|EdgiOS|OPiOS|GSA\/|Line\/|FBAN|FBAV|Instagram/.test(navigator.userAgent);
 }
+
+// The device's IANA zone (e.g. 'Asia/Taipei'); used to send pushes at local time.
+export function deviceTimeZone() {
+  try { return Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Taipei'; } catch { return 'Asia/Taipei'; }
+}

@@ -1,35 +1,26 @@
-// Ported as-is from design/prototype.html (low-precision series).
-// Phase 2 replaces these with astronomy-engine. Keep signatures stable.
+// Ephemeris helpers backed by astronomy-engine (VSOP87 / ELP, IAU 2000B nutation).
+// Longitudes are geocentric, apparent, tropical ecliptic of date — what astrology uses.
+// Signatures are the same as the Phase 1 low-precision port.
+import { MakeTime, SunPosition, EclipticGeoMoon, SiderealTime, e_tilt } from 'astronomy-engine';
+
 export const D2R = Math.PI / 180;
 export const norm = d => ((d % 360) + 360) % 360;
 
+const J2000 = 2451545;
 export function julianDay(dateUTC) { return dateUTC.getTime() / 86400000 + 2440587.5; }
+// astronomy-engine counts UT days from J2000.
+const timeOf = jd => MakeTime(jd - J2000);
 
-export function sunLon(jd) {
-  const T = (jd - 2451545) / 36525;
-  const L0 = 280.46646 + 36000.76983 * T;
-  const M = (357.52911 + 35999.05029 * T) * D2R;
-  const C = (1.914602 - 0.004817 * T) * Math.sin(M) + 0.019993 * Math.sin(2 * M) + 0.000289 * Math.sin(3 * M);
-  return norm(L0 + C);
-}
+export function sunLon(jd) { return norm(SunPosition(timeOf(jd)).elon); }
 
-export function moonLon(jd) {
-  const T = (jd - 2451545) / 36525;
-  const Lp = 218.3164477 + 481267.88123421 * T;
-  const D = (297.8501921 + 445267.1114034 * T) * D2R;
-  const M = (357.5291092 + 35999.0502909 * T) * D2R;
-  const Mp = (134.9633964 + 477198.8675055 * T) * D2R;
-  const F = (93.272095 + 483202.0175233 * T) * D2R;
-  return norm(Lp + 6.288774 * Math.sin(Mp) + 1.274027 * Math.sin(2 * D - Mp) + 0.658314 * Math.sin(2 * D)
-    + 0.213618 * Math.sin(2 * Mp) - 0.185116 * Math.sin(M) - 0.114332 * Math.sin(2 * F)
-    + 0.058793 * Math.sin(2 * D - 2 * Mp) + 0.057066 * Math.sin(2 * D - M - Mp) + 0.053322 * Math.sin(2 * D + Mp));
-}
+export function moonLon(jd) { return norm(EclipticGeoMoon(timeOf(jd)).lon); }
 
+// Ascendant from apparent sidereal time and the true obliquity of the ecliptic.
+// lat/lon in degrees, east longitude positive.
 export function ascendant(jd, lat, lon) {
-  const T = (jd - 2451545) / 36525;
-  const gmst = norm(280.46061837 + 360.98564736629 * (jd - 2451545) + 0.000387933 * T * T);
-  const ramc = norm(gmst + lon) * D2R;
-  const eps = (23.4392911 - 0.0130042 * T) * D2R;
+  const time = timeOf(jd);
+  const ramc = norm(SiderealTime(time) * 15 + lon) * D2R;
+  const eps = e_tilt(time).tobl * D2R;
   return norm(Math.atan2(Math.cos(ramc), -(Math.sin(ramc) * Math.cos(eps) + Math.tan(lat * D2R) * Math.sin(eps))) / D2R);
 }
 
