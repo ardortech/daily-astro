@@ -1,0 +1,428 @@
+<title>每日星座</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@500;700;900&family=Noto+Sans+TC:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a single phone-width app column — onboarding sheet, then three tabs (今日 / 名師更新 / 通知). Ink-blue night sky with brass ephemeris details. */
+:root {
+  --bg: #eef0f4; --surface: #ffffff; --ink: #1b2236; --muted: #5d6680; --line: #d7dbe5;
+  --brass: #9a6b1f; --brass-soft: #f3e8d2; --night: #1a2140; --night-fg: #eef0f8;
+  --warn: #b4472f; --warn-soft: #f8e5e0; --good: #2f7a55;
+  --f-display: "Noto Serif TC", "Songti TC", serif;
+  --f-body: "Noto Sans TC", "PingFang TC", system-ui, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0d1120; --surface: #161c31; --ink: #e8ebf4; --muted: #9aa3bd; --line: #283152;
+  --brass: #d7ad62; --brass-soft: #2b2617; --night: #0a0e1c; --night-fg: #eef0f8;
+  --warn: #ec8a73; --warn-soft: #3a1f1a; --good: #7cc9a0; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #0d1120; --surface: #161c31; --ink: #e8ebf4; --muted: #9aa3bd; --line: #283152;
+  --brass: #d7ad62; --brass-soft: #2b2617; --night: #0a0e1c; --night-fg: #eef0f8;
+  --warn: #ec8a73; --warn-soft: #3a1f1a; --good: #7cc9a0; color-scheme: dark }
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.65; }
+.app { max-width: 460px; margin: 0 auto; padding-inline: 16px; padding-block: 0 96px; }
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; margin: 0; line-height: 1.3; }
+.mono { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+.label { font-size: 12px; letter-spacing: .08em; color: var(--muted); }
+button { font: inherit; cursor: pointer; }
+:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
+
+/* header */
+.top { display: flex; justify-content: space-between; align-items: baseline; padding-block: 20px 12px; }
+.brand { font-family: var(--f-display); font-weight: 900; font-size: 22px; letter-spacing: .04em; }
+.brand small { font-family: var(--f-mono); font-weight: 400; font-size: 11px; color: var(--muted); letter-spacing: .1em; margin-left: 6px; }
+.chip-btn { border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 999px; padding: 4px 12px; font-size: 13px; }
+
+/* sky hero */
+.sky { background: var(--night); color: var(--night-fg); border-radius: 20px; padding: 20px; display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center; position: relative; overflow: hidden; }
+.sky .date { font-family: var(--f-mono); font-size: 12px; opacity: .75; letter-spacing: .08em; }
+.sky h1 { font-size: 26px; font-weight: 900; margin-top: 4px; }
+.sky .trio { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+.sky .trio span { border: 1px solid rgba(238,240,248,.25); border-radius: 999px; padding: 2px 10px; font-size: 12.5px; }
+.sky .trio b { color: #e3bc74; font-weight: 500; }
+.wheel { width: 104px; height: 104px; }
+.moonline { grid-column: 1 / -1; font-size: 13px; opacity: .85; border-top: 1px solid rgba(238,240,248,.15); padding-top: 10px; }
+
+/* cards */
+.stack { display: grid; gap: 14px; margin-top: 14px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 16px 18px; }
+.card h2 { font-size: 17px; margin-bottom: 6px; }
+.card p { margin: 0; }
+.watch { background: var(--warn-soft); border-color: transparent; }
+.watch .label { color: var(--warn); }
+.stars { color: var(--brass); font-size: 15px; letter-spacing: 1px; line-height: 1; white-space: nowrap; }
+.stars .off { color: var(--line); }
+.scores { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 10px; }
+.scores div { display: grid; gap: 4px; }
+.lucky { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.lucky .card { display: grid; gap: 8px; align-content: start; }
+.swatch { width: 100%; height: 44px; border-radius: 10px; border: 1px solid var(--line); }
+.big { font-family: var(--f-display); font-weight: 700; font-size: 19px; }
+.why { font-size: 12.5px; color: var(--muted); }
+
+/* feed */
+.filters { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+.filters button { border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 999px; padding: 4px 12px; font-size: 13px; }
+.filters button[aria-pressed="true"] { background: var(--ink); color: var(--surface); border-color: var(--ink); }
+.post { display: grid; grid-template-columns: 44px 1fr; gap: 12px; }
+.avatar { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; font-family: var(--f-display); font-weight: 900; background: var(--brass-soft); color: var(--brass); font-size: 18px; }
+.post .meta { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; font-size: 12.5px; color: var(--muted); }
+.tag { border-radius: 6px; padding: 0 6px; font-size: 11.5px; border: 1px solid var(--line); }
+.tag.new { background: var(--brass); color: var(--surface); border-color: var(--brass); }
+.post h3 { font-family: var(--f-body); font-weight: 700; font-size: 15px; margin: 2px 0 4px; }
+.post a { color: var(--brass); font-weight: 500; text-decoration: none; font-size: 13.5px; }
+.post a:hover { text-decoration: underline; }
+.note { font-size: 12.5px; color: var(--muted); border-left: 2px solid var(--line); padding-left: 10px; }
+
+/* settings */
+.row { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding-block: 10px; border-top: 1px solid var(--line); }
+.row:first-of-type { border-top: 0; }
+.switch { position: relative; width: 46px; height: 28px; flex: none; }
+.switch input { opacity: 0; width: 100%; height: 100%; position: absolute; margin: 0; cursor: pointer; }
+.switch span { position: absolute; inset: 0; border-radius: 999px; background: var(--line); transition: background .2s; pointer-events: none; }
+.switch span::after { content: ""; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: var(--surface); transition: transform .2s; box-shadow: 0 1px 2px rgba(0,0,0,.2); }
+.switch input:checked + span { background: var(--brass); }
+.switch input:checked + span::after { transform: translateX(18px); }
+.switch input:focus-visible + span { outline: 2px solid var(--brass); outline-offset: 2px; }
+select, input[type=date], input[type=time] { font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; width: 100%; }
+.preview { background: var(--night); color: var(--night-fg); border-radius: 14px; padding: 12px 14px; display: grid; grid-template-columns: 32px 1fr; gap: 10px; font-size: 13.5px; }
+.preview .ic { width: 32px; height: 32px; border-radius: 8px; background: #e3bc74; color: #1a2140; display: grid; place-items: center; font-family: var(--f-display); font-weight: 900; }
+.preview b { display: block; font-size: 13px; }
+.preview .t { opacity: .6; font-size: 11.5px; float: right; font-family: var(--f-mono); }
+.primary { background: var(--brass); color: var(--surface); border: 0; border-radius: 12px; padding: 12px 16px; font-weight: 700; width: 100%; }
+.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(84px + env(safe-area-inset-bottom, 0px)); background: var(--ink); color: var(--surface); padding: 8px 14px; border-radius: 10px; font-size: 13.5px; }
+
+/* onboarding */
+.form { display: grid; gap: 12px; }
+.form label { display: grid; gap: 4px; font-size: 13.5px; color: var(--muted); }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.result { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; text-align: center; }
+.result div { background: var(--brass-soft); border-radius: 12px; padding: 10px 4px; }
+.result .big { font-size: 17px; }
+
+/* tab bar */
+.tabs { position: fixed; left: 0; right: 0; bottom: 0; background: var(--surface); border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom, 0px); }
+.tabs nav { max-width: 460px; margin: 0 auto; display: grid; grid-template-columns: repeat(3, 1fr); }
+.tabs button { background: none; border: 0; color: var(--muted); padding: 10px 0 12px; display: grid; justify-items: center; gap: 2px; font-size: 12px; }
+.tabs button svg { width: 22px; height: 22px; }
+.tabs button[aria-selected="true"] { color: var(--brass); font-weight: 700; }
+.badge { background: var(--warn); color: #fff; border-radius: 999px; font-size: 10px; padding: 0 5px; margin-left: 2px; font-family: var(--f-mono); }
+.sample { font-size: 11.5px; color: var(--muted); text-align: center; margin-top: 18px; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="app">
+  <header class="top">
+    <div class="brand">每日星座<small>DAILY ASTRO</small></div>
+    <button class="chip-btn" id="editProfile" type="button">我的星盤</button>
+  </header>
+
+  <!-- TODAY -->
+  <section id="tab-today" role="tabpanel">
+    <div class="sky">
+      <div>
+        <div class="date" id="todayDate"></div>
+        <h1 id="todayHeadline"></h1>
+        <div class="trio" id="trio"></div>
+      </div>
+      <canvas class="wheel" id="wheel" width="208" height="208" aria-label="今日月亮位置"></canvas>
+      <div class="moonline" id="moonLine"></div>
+    </div>
+    <div class="stack">
+      <div class="card">
+        <div class="label">今日重點</div>
+        <h2 id="keyTitle"></h2>
+        <p id="keyBody"></p>
+        <div class="scores" id="scores"></div>
+      </div>
+      <div class="card watch">
+        <div class="label">要注意</div>
+        <p id="watchBody"></p>
+      </div>
+      <div class="lucky">
+        <div class="card">
+          <div class="label">幸運色</div>
+          <div class="swatch" id="luckySwatch"></div>
+          <div class="big" id="luckyColor"></div>
+          <div class="why" id="luckyColorWhy"></div>
+        </div>
+        <div class="card">
+          <div class="label">幸運配件</div>
+          <div class="big" id="luckyItem"></div>
+          <div class="why" id="luckyItemWhy"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="label">這週名師更新</div>
+        <div id="miniFeed" style="display:grid;gap:8px;margin-top:6px"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEED -->
+  <section id="tab-feed" role="tabpanel" hidden>
+    <h2 style="font-size:22px;margin-top:4px">名師更新</h2>
+    <p class="why" style="margin:4px 0 10px">追蹤的老師發布週運、月運時推播提醒，點進原頻道觀看。</p>
+    <div class="filters" id="filters"></div>
+    <div class="stack" id="feed"></div>
+  </section>
+
+  <!-- SETTINGS -->
+  <section id="tab-notify" role="tabpanel" hidden>
+    <h2 style="font-size:22px;margin-top:4px">通知設定</h2>
+    <div class="stack">
+      <div class="card">
+        <div class="label" style="margin-bottom:8px">推播預覽</div>
+        <div class="preview"><div class="ic">星</div><div><span class="t">07:30</span><b id="pvTitle"></b><span id="pvBody"></span></div></div>
+      </div>
+      <div class="card">
+        <div class="row"><div><b>每日運勢</b><div class="why">每天早上推送一則</div></div><label class="switch"><input type="checkbox" id="swDaily" checked><span></span></label></div>
+        <div class="row"><div style="flex:1"><b>推送時間</b></div><div style="width:130px"><input type="time" id="pushTime" value="07:30"></div></div>
+      </div>
+      <div class="card" id="authorSwitches"><div class="label" style="margin-bottom:4px">追蹤的老師</div></div>
+      <button class="primary" id="enablePush" type="button">開啟通知</button>
+      <p class="note">正式版會呼叫瀏覽器的通知授權（iPhone 需先「加入主畫面」才能收推播）。此原型只示範流程。</p>
+    </div>
+  </section>
+
+  <!-- ONBOARDING -->
+  <section id="tab-onboard" hidden>
+    <h2 style="font-size:22px;margin-top:4px">建立你的星盤</h2>
+    <p class="why" style="margin:4px 0 14px">出生時間越準，上升星座越準。不確定時間的話，只會用太陽與月亮。</p>
+    <div class="card form">
+      <label for="bDate">出生日期<input type="date" id="bDate" value="1992-08-14"></label>
+      <div class="two">
+        <label for="bTime">出生時間<input type="time" id="bTime" value="09:20"></label>
+        <label for="bCity">出生地<select id="bCity"></select></label>
+      </div>
+      <label style="display:flex;gap:8px;align-items:center;color:var(--ink)"><input type="checkbox" id="noTime"> 我不知道出生時間</label>
+      <div class="result" id="calcResult"></div>
+      <button class="primary" id="saveProfile" type="button">儲存並看今日運勢</button>
+    </div>
+    <p class="sample">範例資料已預先填好，可直接修改。</p>
+  </section>
+
+  <p class="sample" id="sampleNote">原型展示：運勢文字由真實星象（太陽、月亮、上升）計算後套用範本產生；名師更新為示意資料。</p>
+</div>
+
+<div class="tabs"><nav role="tablist">
+  <button role="tab" data-tab="today" aria-selected="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M5 19l2-2M17 7l2-2"/></svg>今日</button>
+  <button role="tab" data-tab="feed" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M10 9.5v5l4-2.5z" fill="currentColor"/></svg><span>名師更新<span class="badge" id="newCount"></span></span></button>
+  <button role="tab" data-tab="notify" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 20a2 2 0 0 0 4 0"/></svg>通知</button>
+</nav></div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+// Pure astro functions (shared with the page; tested with node)
+const D2R = Math.PI / 180;
+const norm = d => ((d % 360) + 360) % 360;
+function julianDay(dateUTC) { return dateUTC.getTime() / 86400000 + 2440587.5; }
+function sunLon(jd) {
+  const T = (jd - 2451545) / 36525;
+  const L0 = 280.46646 + 36000.76983 * T;
+  const M = (357.52911 + 35999.05029 * T) * D2R;
+  const C = (1.914602 - 0.004817 * T) * Math.sin(M) + 0.019993 * Math.sin(2 * M) + 0.000289 * Math.sin(3 * M);
+  return norm(L0 + C);
+}
+function moonLon(jd) {
+  const T = (jd - 2451545) / 36525;
+  const Lp = 218.3164477 + 481267.88123421 * T;
+  const D = (297.8501921 + 445267.1114034 * T) * D2R;
+  const M = (357.5291092 + 35999.0502909 * T) * D2R;
+  const Mp = (134.9633964 + 477198.8675055 * T) * D2R;
+  const F = (93.272095 + 483202.0175233 * T) * D2R;
+  return norm(Lp + 6.288774 * Math.sin(Mp) + 1.274027 * Math.sin(2 * D - Mp) + 0.658314 * Math.sin(2 * D)
+    + 0.213618 * Math.sin(2 * Mp) - 0.185116 * Math.sin(M) - 0.114332 * Math.sin(2 * F)
+    + 0.058793 * Math.sin(2 * D - 2 * Mp) + 0.057066 * Math.sin(2 * D - M - Mp) + 0.053322 * Math.sin(2 * D + Mp));
+}
+function ascendant(jd, lat, lon) {
+  const T = (jd - 2451545) / 36525;
+  const gmst = norm(280.46061837 + 360.98564736629 * (jd - 2451545) + 0.000387933 * T * T);
+  const ramc = norm(gmst + lon) * D2R;
+  const eps = (23.4392911 - 0.0130042 * T) * D2R;
+  return norm(Math.atan2(Math.cos(ramc), -(Math.sin(ramc) * Math.cos(eps) + Math.tan(lat * D2R) * Math.sin(eps))) / D2R);
+}
+const signOf = lon => Math.floor(norm(lon) / 30);
+
+const SIGNS = ['牡羊','金牛','雙子','巨蟹','獅子','處女','天秤','天蠍','射手','魔羯','水瓶','雙魚'];
+const GLYPH = ['♈','♉','♊','♋','♌','♍','♎','♏','♐','♑','♒','♓'];
+const ELEMENT = ['火','土','風','水'];
+const CITIES = [
+  ['台北',25.03,121.56,8],['新北',25.01,121.46,8],['桃園',24.99,121.30,8],['台中',24.15,120.67,8],['台南',22.99,120.21,8],
+  ['高雄',22.63,120.30,8],['新竹',24.80,120.97,8],['花蓮',23.98,121.60,8],['香港',22.32,114.17,8],['澳門',22.20,113.55,8],
+  ['上海',31.23,121.47,8],['北京',39.90,116.40,8],['新加坡',1.35,103.82,8],['吉隆坡',3.14,101.69,8],['東京',35.68,139.69,9],
+  ['首爾',37.57,126.98,9],['雪梨',-33.87,151.21,10],['洛杉磯',34.05,-118.24,-8],['舊金山',37.77,-122.42,-8],['紐約',40.71,-74.01,-5],
+  ['溫哥華',49.28,-123.12,-8],['倫敦',51.51,-0.13,0]];
+const HOUSE = [
+  ['自我與形象','適合換個髮型、主動開口，你今天說的話分量比平常重。'],
+  ['金錢與價值','收入、花費、自我價值感都被放大，適合整理帳目或談報酬。'],
+  ['溝通與學習','訊息、會議、短途移動特別多，把想法寫下來會更清楚。'],
+  ['家庭與安全感','心思容易回到家裡，適合打掃、陪家人吃飯、整理情緒。'],
+  ['創作與戀愛','靈感與玩心上升，適合約會、做喜歡的事、展示作品。'],
+  ['工作與健康','瑣事多但效率高，適合清待辦、運動、調整作息。'],
+  ['伴侶與合作','一對一關係是主題，合作談判或和另一半溝通都有進展。'],
+  ['深度與共享資源','適合處理貸款、保險、共同財務，也容易觸碰深層情緒。'],
+  ['遠方與信念','想出走、想學新東西，適合規劃旅行、上課、讀書。'],
+  ['事業與名聲','工作表現被看見的一天，適合向上報告、爭取機會。'],
+  ['朋友與社群','人脈帶來好消息，適合參加聚會、在社群發聲。'],
+  ['休息與內在','能量偏低、直覺偏強，適合放慢、獨處、早點睡。']];
+const ASPECT = {0:['合相','情緒和行動同一個方向，衝勁很強，但容易只看自己的角度。'],1:['半六合','小小的不協調，多一點彈性就好。'],2:['六合','順手的一天，主動一點會有回應。'],3:['四分相','情緒和目標拉扯，容易急躁或說話太衝，重要決定緩一緩。'],4:['三分相','心情和做事節奏一致，是一週裡最好推進的日子之一。'],5:['梅花相','感覺不太對勁卻說不出原因，別硬撐，調整期待。'],6:['對分相','容易和身邊的人意見相左，先聽完再回應。']};
+const COLORS = {
+  '火':[['珊瑚紅','#e0654e'],['琥珀橘','#e3953a'],['正紅','#c8322b']],
+  '土':[['橄欖綠','#7a8a3e'],['可可棕','#7b5539'],['燕麥米','#d7c6a3']],
+  '風':[['天空藍','#7fb0dc'],['薰衣草紫','#a99bd6'],['銀灰','#b8bcc6']],
+  '水':[['海軍藍','#22406e'],['湖水綠','#3f9a96'],['珍珠白','#efece4']]};
+const ITEMS = {
+  '火':['金色細手鍊','紅繩','亮面皮帶','太陽眼鏡'],
+  '土':['木質手串','皮革錶帶','玉石墜子','帆布托特包'],
+  '風':['絲巾','耳環','輕薄圍巾','銀戒指'],
+  '水':['珍珠耳環','月光石','香水','水晶手鍊']};
+const AUTHORS = [
+  {id:'tang', name:'唐綺陽', short:'唐', where:'YouTube・唐綺陽官方專屬頻道', url:'https://www.youtube.com/channel/UCK7LdglLCApOTaylxX8hW2Q', cadence:'週運・月運'},
+  {id:'mafalda', name:'瑪法達', short:'瑪', where:'鏡週刊・瑪法達星座運勢', url:'https://www.mirrormedia.mg/', cadence:'週運（每週三）'},
+  {id:'susan', name:'Susan Miller', short:'S', where:'Astrology Zone', url:'https://www.astrologyzone.com/horoscopes/', cadence:'月運'}];
+const FEED = [
+  {a:'mafalda', kind:'週運', title:'瑪法達星座運勢 10.14～10.20', when:'週三 15:58 預計', h:-46, upcoming:true},
+  {a:'tang', kind:'週運', title:'唐綺陽 10/12–10/18 星座運勢週報', when:'今天 12:00', h:9},
+  {a:'tang', kind:'直播', title:'唐綺陽直播：天秤季下半場怎麼過', when:'昨天 21:00', h:24},
+  {a:'mafalda', kind:'週運', title:'瑪法達星座運勢 10.07～10.13', when:'10/7 15:58', h:132},
+  {a:'susan', kind:'月運', title:'Your October Horoscope by Susan Miller', when:'10/1', h:270},
+  {a:'tang', kind:'月運', title:'唐綺陽 10 月星座運勢', when:'9/29 21:00', h:330}];
+
+const D2Rp = Math.PI / 180;
+const store = { get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} } };
+let profile = store.get('astro.profile', null);
+let follows = store.get('astro.follows', {tang:true, mafalda:true, susan:true});
+let filter = 'all';
+
+function chartFor(dateStr, timeStr, cityIdx, noTime) {
+  const c = CITIES[cityIdx];
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const [hh, mm] = noTime ? [12, 0] : timeStr.split(':').map(Number);
+  const utc = new Date(Date.UTC(y, m - 1, d, hh - c[3], mm));
+  const jd = julianDay(utc);
+  return { sun: signOf(sunLon(jd)), moon: signOf(moonLon(jd)), rising: noTime ? null : signOf(ascendant(jd, c[1], c[2])) };
+}
+function hash(s) { let h = 2166136261; for (const ch of s) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; }
+
+function today() {
+  const now = new Date();
+  const jd = julianDay(now);
+  const mLon = moonLon(jd), sLon = sunLon(jd);
+  const phase = norm(mLon - sLon);
+  return { now, jd, mLon, sLon, moon: signOf(mLon), phase };
+}
+function phaseName(p) { return p < 22.5 || p >= 337.5 ? '新月' : p < 67.5 ? '眉月' : p < 112.5 ? '上弦月' : p < 157.5 ? '盈凸月' : p < 202.5 ? '滿月' : p < 247.5 ? '虧凸月' : p < 292.5 ? '下弦月' : '殘月'; }
+
+function reading(p, t) {
+  const base = p.rising ?? p.sun;
+  const house = (t.moon - base + 12) % 12;
+  const sep = (t.moon - p.sun + 12) % 12;
+  const asp = ASPECT[Math.min(sep, 12 - sep)];
+  const el = ELEMENT[t.moon % 4];
+  const dayKey = t.now.toISOString().slice(0, 10) + base + p.sun;
+  const h = hash(dayKey);
+  const [cName, cHex] = COLORS[el][h % 3];
+  const item = ITEMS[ELEMENT[base % 4]][(h >> 3) % 4];
+  const good = [4, 2, 0].includes(Math.min(sep, 12 - sep));
+  const sc = k => Math.max(1, Math.min(5, 3 + (good ? 1 : -1) * ((h >> k) & 1) + ((h >> (k + 4)) % 2) - (Math.min(sep, 12 - sep) === 3 ? 1 : 0)));
+  return { house, asp, el, cName, cHex, item, base,
+    scores: [['整體', sc(1)], ['愛情', sc(5)], ['事業', sc(9)], ['財運', sc(13)]] };
+}
+
+function drawWheel(t, p) {
+  const cv = document.getElementById('wheel'); const g = cv.getContext('2d');
+  const W = cv.width, c = W / 2, R = 96;
+  g.clearRect(0, 0, W, W);
+  g.strokeStyle = 'rgba(238,240,248,.35)'; g.lineWidth = 1.5;
+  g.beginPath(); g.arc(c, c, R, 0, Math.PI * 2); g.stroke();
+  g.beginPath(); g.arc(c, c, R - 30, 0, Math.PI * 2); g.stroke();
+  const asc = p.rising !== null ? p.rising * 30 + 15 : p.sun * 30;
+  const pos = lon => (180 + (lon - asc)) * D2Rp; // ascendant on the left, signs run counter-clockwise
+  for (let i = 0; i < 12; i++) {
+    const a = pos(i * 30);
+    g.beginPath(); g.moveTo(c + Math.cos(a) * (R - 30), c - Math.sin(a) * (R - 30)); g.lineTo(c + Math.cos(a) * R, c - Math.sin(a) * R); g.stroke();
+    const m = pos(i * 30 + 15);
+    g.fillStyle = (i === p.sun || i === p.moon || i === p.rising) ? '#e3bc74' : 'rgba(238,240,248,.55)';
+    g.font = '18px serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.fillText(GLYPH[i], c + Math.cos(m) * (R - 15), c - Math.sin(m) * (R - 15));
+  }
+  const ma = pos(t.mLon);
+  g.fillStyle = '#eef0f8'; g.beginPath(); g.arc(c + Math.cos(ma) * (R - 48), c - Math.sin(ma) * (R - 48), 9, 0, Math.PI * 2); g.fill();
+  g.fillStyle = 'rgba(238,240,248,.6)'; g.font = '13px "IBM Plex Mono", monospace'; g.fillText('月', c, c);
+}
+
+const $ = id => document.getElementById(id);
+function renderToday() {
+  const t = today(); const r = reading(profile, t);
+  const d = t.now;
+  $('todayDate').textContent = `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')} ・ ${'日一二三四五六'[d.getDay()]}`;
+  $('todayHeadline').textContent = `${SIGNS[profile.sun]}座的今天：${HOUSE[r.house][0]}`;
+  $('trio').innerHTML = `<span>太陽 <b>${GLYPH[profile.sun]} ${SIGNS[profile.sun]}</b></span><span>月亮 <b>${GLYPH[profile.moon]} ${SIGNS[profile.moon]}</b></span>` + (profile.rising !== null ? `<span>上升 <b>${GLYPH[profile.rising]} ${SIGNS[profile.rising]}</b></span>` : '<span>上升 未知</span>');
+  $('moonLine').innerHTML = `今日月亮在 <b>${SIGNS[t.moon]}座</b>（<span class="mono">${(t.mLon % 30).toFixed(0)}°</span>）・${phaseName(t.phase)}・落在你的第 <span class="mono">${r.house + 1}</span> 宮`;
+  $('keyTitle').textContent = `月亮行經第 ${r.house + 1} 宮：${HOUSE[r.house][0]}`;
+  $('keyBody').textContent = HOUSE[r.house][1];
+  $('scores').innerHTML = r.scores.map(([k, v]) => `<div><span class="label">${k}</span><div class="stars" role="img" aria-label="${k} ${v} 顆星">${'★'.repeat(v)}<span class="off">${'★'.repeat(5 - v)}</span></div></div>`).join('');
+  $('watchBody').textContent = `月亮與你的太陽成${r.asp[0]}：${r.asp[1]}`;
+  $('luckySwatch').style.background = r.cHex;
+  $('luckyColor').textContent = r.cName;
+  $('luckyColorWhy').textContent = `月亮在${r.el}象星座，帶點${r.el}象色調幫你接住今天的節奏。`;
+  $('luckyItem').textContent = r.item;
+  $('luckyItemWhy').textContent = `呼應你的${profile.rising !== null ? '上升' : '太陽'}${SIGNS[r.base]}座（${ELEMENT[r.base % 4]}象）。`;
+  $('pvTitle').textContent = `${SIGNS[profile.sun]}座今日：${HOUSE[r.house][0]}`;
+  $('pvBody').textContent = `幸運色${r.cName}・配件${r.item}。${r.asp[0] === '四分相' || r.asp[0] === '對分相' ? '說話慢半拍。' : '適合主動出擊。'}`;
+  drawWheel(t, profile);
+  const mini = FEED.filter(f => follows[f.a] && !f.upcoming).slice(0, 3);
+  $('miniFeed').innerHTML = mini.map(f => { const a = AUTHORS.find(x => x.id === f.a); return `<div style="display:flex;gap:10px;align-items:center"><div class="avatar" style="width:32px;height:32px;font-size:14px">${a.short}</div><div style="min-width:0;flex:1"><div style="font-size:14px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${f.title}</div><div class="why">${a.name}・${f.when}</div></div></div>`; }).join('') || '<p class="why">還沒有追蹤任何老師。</p>';
+}
+
+function renderFeed() {
+  $('filters').innerHTML = [['all','全部'], ...AUTHORS.map(a => [a.id, a.name])].map(([id, n]) => `<button type="button" data-f="${id}" aria-pressed="${filter === id}">${n}</button>`).join('');
+  const items = FEED.filter(f => follows[f.a] && (filter === 'all' || f.a === filter));
+  $('feed').innerHTML = items.map(f => { const a = AUTHORS.find(x => x.id === f.a);
+    return `<article class="card post"><div class="avatar">${a.short}</div><div style="min-width:0">
+      <div class="meta"><b style="color:var(--ink)">${a.name}</b><span class="tag ${f.h < 24 && !f.upcoming ? 'new' : ''}">${f.upcoming ? '即將發布' : f.h < 24 ? 'NEW' : f.kind}</span><span>${f.when}</span></div>
+      <h3>${f.title}</h3><div class="why" style="margin-bottom:6px">${a.where}</div>
+      ${f.upcoming ? '<span class="why">發布後會推播通知你</span>' : `<a href="${a.url}" target="_blank" rel="noopener">到原頻道觀看 →</a>`}</div></article>`; }).join('')
+    + '<p class="note">只顯示標題與連結，內容請到老師的頻道看。正式版會自動偵測新影片／新文章。</p>';
+  $('newCount').textContent = FEED.filter(f => follows[f.a] && f.h < 24 && !f.upcoming).length || '';
+}
+
+function renderSwitches() {
+  $('authorSwitches').innerHTML = '<div class="label" style="margin-bottom:4px">追蹤的老師</div>' + AUTHORS.map(a =>
+    `<div class="row"><div><b>${a.name}</b><div class="why">${a.where}・${a.cadence}</div></div><label class="switch"><input type="checkbox" id="f-${a.id}" data-a="${a.id}" ${follows[a.id] ? 'checked' : ''} aria-label="追蹤${a.name}"><span></span></label></div>`).join('');
+}
+
+function renderCalc() {
+  const ch = chartFor($('bDate').value, $('bTime').value, +$('bCity').value, $('noTime').checked);
+  $('bTime').disabled = $('noTime').checked;
+  $('calcResult').innerHTML = [['太陽', ch.sun], ['月亮', ch.moon], ['上升', ch.rising]].map(([k, v]) =>
+    `<div><div class="label">${k}</div><div class="big">${v === null ? '—' : GLYPH[v] + ' ' + SIGNS[v]}</div></div>`).join('');
+  return ch;
+}
+
+function show(tab) {
+  ['today','feed','notify','onboard'].forEach(id => $('tab-' + id).hidden = id !== tab);
+  document.querySelectorAll('[role=tab]').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === tab));
+  window.scrollTo(0, 0);
+}
+function toast(msg) { const el = $('toast'); el.textContent = msg; el.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => el.hidden = true, 2200); }
+
+$('bCity').innerHTML = CITIES.map((c, i) => `<option value="${i}">${c[0]}</option>`).join('');
+['bDate','bTime','bCity','noTime'].forEach(id => $(id).addEventListener('input', renderCalc));
+$('saveProfile').addEventListener('click', () => {
+  const ch = renderCalc(); profile = ch; store.set('astro.profile', ch);
+  renderToday(); show('today'); toast('已儲存你的星盤');
+});
+$('editProfile').addEventListener('click', () => { renderCalc(); show('onboard'); });
+document.querySelectorAll('[role=tab]').forEach(b => b.addEventListener('click', () => { if (!profile) { show('onboard'); return; } show(b.dataset.tab); }));
+$('filters').addEventListener('click', e => { const b = e.target.closest('[data-f]'); if (!b) return; filter = b.dataset.f; renderFeed(); });
+$('authorSwitches').addEventListener('change', e => { const a = e.target.dataset.a; if (!a) return; follows[a] = e.target.checked; store.set('astro.follows', follows); renderFeed(); renderToday(); toast(e.target.checked ? '已追蹤' : '已取消追蹤'); });
+$('enablePush').addEventListener('click', () => toast(`示範：每天 ${$('pushTime').value} 推送`));
+
+if (!profile) profile = chartFor('1992-08-14', '09:20', 0, false); // sample profile so the first view is filled
+renderCalc(); renderToday(); renderFeed(); renderSwitches();
+</script>
