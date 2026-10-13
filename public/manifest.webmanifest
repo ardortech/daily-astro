@@ -1,7 +1,7 @@
 {
-  "name": "每日星座",
-  "short_name": "每日星座",
-  "description": "每日星座運勢推播，名師發布新週運月運時提醒你。",
+  "name": "每日吉光",
+  "short_name": "吉光",
+  "description": "日日是好日。每天早上一則星座與生肖運勢，名師發布新週運月運時提醒你。",
   "lang": "zh-TW",
   "dir": "ltr",
   "id": "/",
@@ -9,8 +9,8 @@
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#1a2140",
-  "theme_color": "#1a2140",
+  "background_color": "#fbf3ea",
+  "theme_color": "#fbf3ea",
   "categories": ["lifestyle", "entertainment"],
   "icons": [
     { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },

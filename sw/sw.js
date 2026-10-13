@@ -54,7 +54,7 @@ self.addEventListener('fetch', event => {
 self.addEventListener('push', event => {
   let data = {};
   try { data = event.data ? event.data.json() : {}; } catch { data = { body: event.data?.text() }; }
-  event.waitUntil(self.registration.showNotification(data.title || '每日星座', {
+  event.waitUntil(self.registration.showNotification(data.title || '每日吉光', {
     body: data.body || '',
     icon: '/icons/icon-192.png',
     badge: '/icons/icon-192.png',

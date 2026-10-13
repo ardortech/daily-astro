@@ -17,4 +17,4 @@ export const FEED = [
   { a: 'tang', kind: 'monthly', title: '唐綺陽 10 月星座運勢', when: '9/29 21:00', h: 330 },
 ];
 
-export const SAMPLE_BIRTH = { date: '1992-08-14', time: '09:20', city: 'taipei', noTime: false };
+export const SAMPLE_BIRTH = { date: '1992-08-14', time: '09:20', city: 'taipei', noTime: false, calendar: 'solar' };

@@ -12,14 +12,13 @@ const ShareIcon = () => (
   </svg>
 );
 
-// Shown on iPhone/iPad when the app is opened in the browser instead of from
-// the Home Screen. iOS has no install prompt, and web push only works installed.
-export function InstallGuide() {
-  const [hidden, setHidden] = useState(() => !isIOS() || isStandalone() || store.get(KEY, false));
-  if (hidden) return null;
-  const I = t.install;
-  const dismiss = () => { store.set(KEY, true); setHidden(true); };
+// iPhone/iPad opened in the browser instead of from the Home Screen. iOS has no
+// install prompt, web push only works installed, and the Home Screen app has its
+// own storage, so birth details are only collected inside the installed app.
+export const needsInstall = () => isIOS() && !isStandalone();
 
+function Card({ onDismiss }) {
+  const I = t.install;
   return (
     <aside class="install" aria-labelledby="install-title">
       <div class="ic"><ShareIcon /></div>
@@ -29,7 +28,27 @@ export function InstallGuide() {
           ? <><p>{I.body}</p><p class="sub">{I.ios26}</p></>
           : <p>{I.otherBrowser}</p>}
       </div>
-      <button type="button" onClick={dismiss}>{I.dismiss}</button>
+      {onDismiss && <button type="button" onClick={onDismiss}>{I.dismiss}</button>}
     </aside>
   );
+}
+
+// First screen on iPhone Safari before the app is installed: welcome + how to install, no form.
+export function InstallWelcome() {
+  return (
+    <section>
+      <div class="card" style="margin-top:14px">
+        <h2>{t.install.welcome}</h2>
+        <p class="why" style="margin:2px 0 12px">{t.install.welcomeIntro}</p>
+        <Card />
+      </div>
+    </section>
+  );
+}
+
+// Dismissible banner for a profile that already exists in Safari (saved before this flow).
+export function InstallGuide() {
+  const [hidden, setHidden] = useState(() => !needsInstall() || store.get(KEY, false));
+  if (hidden) return null;
+  return <Card onDismiss={() => { store.set(KEY, true); setHidden(true); }} />;
 }
