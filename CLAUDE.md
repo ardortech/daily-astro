@@ -51,6 +51,8 @@ npm run icons     # redraw public/icons/*.png (python3 + Pillow)
 
 ```
 design/prototype.html      approved prototype (reference only, not shipped)
+design/icon-source.png     icon master (white zodiac wheel on #1A2140); `npm run icons` builds public/icons/*
+                           (incl. maskable 512, favicon 16/32) and public/favicon.ico from it
 index.html                 app entry: manifest link, iOS Home Screen meta tags
 src/main.jsx               render + service-worker registration (prod only)
 src/app.jsx                app state: profile, tab, follows, prefs, toast
