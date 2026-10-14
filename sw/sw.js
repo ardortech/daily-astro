@@ -56,8 +56,8 @@ self.addEventListener('push', event => {
   try { data = event.data ? event.data.json() : {}; } catch { data = { body: event.data?.text() }; }
   event.waitUntil(self.registration.showNotification(data.title || '每日吉光', {
     body: data.body || '',
-    icon: '/icons/icon-192.png',
-    badge: '/icons/icon-192.png',
+    icon: '/icon-192.png',
+    badge: '/icon-192.png',
     lang: 'zh-TW',
     data: { url: data.url || '/' },
   }));

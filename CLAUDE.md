@@ -51,15 +51,14 @@ npm run dev       # local dev server (service worker disabled in dev)
 npm run build     # production build → dist/ (what Netlify runs)
 npm run preview   # serve dist/ locally, service worker active
 npm test          # node:test unit tests (src/astro, src/lib/sync row mapping, functions load in plain Node)
-npm run icons     # redraw public/icons/*.png (python3 + Pillow)
 ```
 
 ## Layout
 
 ```
 design/prototype.html      approved prototype (reference only, not shipped)
-design/icon-source.png     icon master (white zodiac wheel on #1A2140); `npm run icons` builds public/icons/*
-                           (incl. maskable 512, favicon 16/32) and public/favicon.ico from it
+design/icons/              ready-made app icons (曙光: sunrise on #1A2140) incl. icon-source.svg and 1024 master;
+                           copied as-is to public/ — don't regenerate them
 index.html                 app entry: manifest link, iOS Home Screen meta tags
 src/main.jsx               render + service-worker registration (prod only)
 src/app.jsx                app state: profile, view (tab / reveal / edit), follows, prefs, toast
@@ -73,7 +72,8 @@ src/lib/                   localStorage cache, Supabase client + sync, iOS/stand
 netlify/functions/         Netlify (Scheduled) Functions: daily-sky.mjs (00:00 Asia/Taipei → daily_sky)
 supabase/migrations/       SQL migrations, run by hand in the Supabase SQL Editor in filename order
 sw/sw.js                   service-worker template; vite.config.js injects the precache list → dist/sw.js
-public/                    manifest.webmanifest, icons (192, 512, maskable 512, apple-touch 180)
+public/                    manifest.webmanifest, icons at the root (icon-192/512, icon-maskable-512, apple-touch-icon,
+                           favicon.svg / -32 / -16 / .ico), copied from design/icons/
 test/                      node:test tests (astro charts, time zones, 農曆 / 生肖 / 八字, row mapping)
 ```
 
@@ -107,7 +107,8 @@ test/                      node:test tests (astro charts, time zones, 農曆 / �
   `test/functions.test.js` loads each function in plain Node with detection off.
 - **Database:** every table has RLS, explicit grants (tables aren't exposed by default) and
   own-row policies on `(select auth.uid()) = user_id`. New migrations go in `supabase/migrations/`.
-- Service worker: bump nothing by hand. The cache version is a hash of the built file list.
+- Service worker: bump nothing by hand. The cache version is a hash of the built file list and the
+  contents of the public/ shell files (icons, manifest), so replacing an icon also refreshes phones.
   `/sw.js` is served with `Cache-Control: no-cache`.
 
 ## Phases
