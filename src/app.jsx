@@ -13,7 +13,7 @@ import { BirthForm } from './components/BirthForm.jsx';
 import { Reveal } from './components/Reveal.jsx';
 import { TabBar, TABS } from './components/TabBar.jsx';
 import { Toast } from './components/Toast.jsx';
-import { InstallGuide, InstallWelcome, needsInstall } from './components/InstallGuide.jsx';
+import { InstallGuide, InstallWelcome, needsInstall, PreviewBadge } from './components/InstallGuide.jsx';
 import { AskTab, AskEntry } from './components/AskTab.jsx';
 
 // Recompute everything derived from the birth inputs, so caches and rows written by
@@ -112,6 +112,7 @@ export function App() {
         {!firstRun && <p class="sample">{t.app.sampleNote}</p>}
       </div>
       {tabbed && <TabBar tab={view} onSelect={show} badge={newCount(follows)} />}
+      <PreviewBadge />
       <Toast msg={toastMsg} />
     </>
   );

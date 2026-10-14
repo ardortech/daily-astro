@@ -4,6 +4,27 @@ import { store } from '../lib/store.js';
 import { t } from '../i18n';
 
 const KEY = 'astro.installGuideDismissed';
+const PREVIEW_KEY = 'astro.previewSkip';
+const PRODUCTION_HOST = 'astro.klchang.com.tw';
+
+function isPreviewSkip() {
+  if (typeof location === 'undefined') return false;
+  if (location.hostname === PRODUCTION_HOST) return false;
+  try {
+    if (sessionStorage.getItem(PREVIEW_KEY)) return true;
+    if (new URLSearchParams(location.search).get('skipinstall') === '1') {
+      sessionStorage.setItem(PREVIEW_KEY, '1');
+      return true;
+    }
+  } catch { /* private browsing */ }
+  return false;
+}
+
+export const previewActive = () => {
+  if (typeof location === 'undefined') return false;
+  if (location.hostname === PRODUCTION_HOST) return false;
+  try { return !!sessionStorage.getItem(PREVIEW_KEY); } catch { return false; }
+};
 
 // iOS share glyph (square with up arrow); a download arrow for Android installs; a link for in-app browsers.
 const ICONS = {
@@ -20,7 +41,7 @@ const Icon = ({ name }) => (
 // Android installs from a card above the form instead; desktop shows no card.
 const BLOCKING = ['ios-safari', 'ios-chrome', 'ios-other', 'inapp'];
 const ANDROID = ['android', 'samsung'];
-export const needsInstall = () => !isStandalone() && BLOCKING.includes(installPlatform());
+export const needsInstall = () => !isPreviewSkip() && !isStandalone() && BLOCKING.includes(installPlatform());
 
 // Re-render when the install prompt arrives or the app gets installed.
 function useInstallState() {
@@ -93,4 +114,9 @@ export function InstallGuide({ toast }) {
   if (installed || dismissed || !(android || BLOCKING.includes(platform))) return null;
   const dismiss = () => { store.set(KEY, true); setDismissed(true); };
   return <Card platform={platform} toast={toast} onDismiss={dismiss} dismissLabel={android ? t.install.later : t.install.dismiss} />;
+}
+
+export function PreviewBadge() {
+  if (!previewActive()) return null;
+  return <div class="preview-badge">預覽模式</div>;
 }
