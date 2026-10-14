@@ -2,7 +2,7 @@
 // Longitudes are geocentric, apparent, tropical ecliptic of date — what astrology uses.
 // Signatures are the same as the Phase 1 low-precision port.
 // Imported via "#astronomy-engine" (package.json imports): see engine.node.cjs.
-import { MakeTime, SunPosition, EclipticGeoMoon, SiderealTime, e_tilt } from '#astronomy-engine';
+import { MakeTime, SunPosition, EclipticGeoMoon, SiderealTime, e_tilt, EclipticLongitude, Body, Illumination } from '#astronomy-engine';
 
 export const D2R = Math.PI / 180;
 export const norm = d => ((d % 360) + 360) % 360;
@@ -26,3 +26,16 @@ export function ascendant(jd, lat, lon) {
 }
 
 export const signOf = lon => Math.floor(norm(lon) / 30);
+
+// Planet ecliptic longitude. body: 'Mercury' | 'Venus' | 'Mars'.
+export function planetLon(body, jd) { return norm(EclipticLongitude(Body[body], timeOf(jd))); }
+
+// True if the planet's longitude decreases over a 1-day window centred on jd.
+export function isRetrograde(body, jd) {
+  const l1 = planetLon(body, jd - 0.5);
+  const l2 = planetLon(body, jd + 0.5);
+  return ((l2 - l1 + 540) % 360) - 180 < 0;
+}
+
+// Moon illuminated fraction (0–1).
+export function moonIllumination(jd) { return Illumination(Body.Moon, timeOf(jd)).phase_fraction; }

@@ -2,7 +2,7 @@
 // birth times are converted to UTC with the city's IANA zone (./tz.js).
 // Returns indices only; all wording lives in src/i18n.
 import { Search, MakeTime } from '#astronomy-engine';
-import { julianDay, sunLon, moonLon, ascendant, signOf, norm } from './math.js';
+import { julianDay, sunLon, moonLon, ascendant, signOf, norm, planetLon, isRetrograde, moonIllumination } from './math.js';
 import { CITIES, REGIONS, cityById } from './cities.js';
 import { zonedToUtc, dateIn } from './tz.js';
 import { solarToLunar, baziFor, almanac, hourBranch, zodiacReading } from './chinese.js';
@@ -76,9 +76,102 @@ const deg4 = x => +x.toFixed(4) % 360;
 // phase is the Moon–Sun elongation in degrees (0 new, 180 full; see phaseIndex).
 export function dailySky(dateStr, tz = 'Asia/Taipei') {
   const [start, end] = dayBounds(dateStr, tz);
+  const jd = julianDay(start);
   const s = sky(start);
   const change = moonIngress(start, end);
-  return { date: dateStr, moon_sign: s.moon, moon_lon: deg4(s.mLon), phase: deg4(s.phase), moon_sign_change_at: change && change.toISOString() };
+
+  // Planets: sign, degree within sign, retrograde
+  const planets = {};
+  for (const body of ['Mercury', 'Venus', 'Mars']) {
+    const lon = planetLon(body, jd);
+    planets[body.toLowerCase()] = { sign: signOf(lon), lon: deg4(lon), retro: isRetrograde(body, jd) };
+  }
+
+  // Moon phase: illuminated fraction + waxing/waning
+  const illum = moonIllumination(jd);
+  const waxing = s.phase < 180;
+
+  // Moon void-of-course: from the last major aspect before ingress to the ingress.
+  let voc_start = null, voc_end = null;
+  if (change) {
+    voc_end = change.toISOString();
+    voc_start = findVocStart(start, change, jd);
+  }
+
+  // Almanac data (干支, 建除, 宜忌, 沖煞, 吉時, 財神)
+  const alm = almanac(dateStr);
+
+  return {
+    date: dateStr,
+    sun_sign: signOf(s.sLon), sun_lon: deg4(s.sLon),
+    moon_sign: s.moon, moon_lon: deg4(s.mLon), phase: deg4(s.phase),
+    moon_illum: +illum.toFixed(4), moon_waxing: waxing,
+    moon_sign_change_at: change && change.toISOString(),
+    mercury_sign: planets.mercury.sign, mercury_lon: planets.mercury.lon, mercury_retro: planets.mercury.retro,
+    venus_sign: planets.venus.sign, venus_lon: planets.venus.lon, venus_retro: planets.venus.retro,
+    mars_sign: planets.mars.sign, mars_lon: planets.mars.lon, mars_retro: planets.mars.retro,
+    voc_start, voc_end,
+    day_stem: alm.day[0], day_branch: alm.day[1],
+    jianchu: alm.jianchu,
+    yi: alm.yi, ji: alm.ji,
+    chong: alm.chong, sha: alm.sha, cai: alm.cai,
+    good_hours: alm.goodHours,
+  };
+}
+
+// Find the start of the Moon's void-of-course period before an ingress.
+// Scans backward from the ingress for the last exact major aspect (0/60/90/120/180)
+// between the Moon and any of the 5 visible bodies.
+function findVocStart(dayStart, ingress, jdStart) {
+  const ASPECTS = [0, 60, 90, 120, 180];
+  const BODIES = ['Mercury', 'Venus', 'Mars'];
+  const ingressJd = julianDay(ingress);
+  let latestAspect = null;
+
+  for (const body of BODIES) {
+    const pLon = planetLon(body, jdStart);
+    for (const asp of ASPECTS) {
+      for (const target of [norm(pLon + asp), norm(pLon - asp)]) {
+        // When did the Moon last cross this longitude before the ingress?
+        const hit = findMoonCrossing(target, julianDay(dayStart) - 1, ingressJd);
+        if (hit && (!latestAspect || hit > latestAspect)) latestAspect = hit;
+      }
+    }
+  }
+  // Also check Sun aspects
+  const sLon = sunLon(jdStart);
+  for (const asp of ASPECTS) {
+    for (const target of [norm(sLon + asp), norm(sLon - asp)]) {
+      const hit = findMoonCrossing(target, julianDay(dayStart) - 1, ingressJd);
+      if (hit && (!latestAspect || hit > latestAspect)) latestAspect = hit;
+    }
+  }
+
+  if (!latestAspect) return null;
+  return new Date((latestAspect - 2440587.5) * 86400000).toISOString();
+}
+
+// Find the last time the Moon crossed targetLon in [jdStart, jdEnd).
+function findMoonCrossing(targetLon, jdStart, jdEnd) {
+  const step = 1 / 24; // 1-hour steps
+  let best = null;
+  let prevDiff = ((moonLon(jdStart) - targetLon + 540) % 360) - 180;
+  for (let jd = jdStart + step; jd <= jdEnd; jd += step) {
+    const diff = ((moonLon(jd) - targetLon + 540) % 360) - 180;
+    if (prevDiff <= 0 && diff > 0 || prevDiff >= 0 && diff < 0) {
+      // Bisect to find the exact crossing
+      let lo = jd - step, hi = jd;
+      for (let i = 0; i < 16; i++) {
+        const mid = (lo + hi) / 2;
+        const d = ((moonLon(mid) - targetLon + 540) % 360) - 180;
+        if ((prevDiff <= 0 && d <= 0) || (prevDiff > 0 && d > 0)) lo = mid; else hi = mid;
+      }
+      const crossing = (lo + hi) / 2;
+      if (crossing < jdEnd && (!best || crossing > best)) best = crossing;
+    }
+    prevDiff = diff;
+  }
+  return best;
 }
 
 export function hash(s) { let h = 2166136261; for (const ch of s) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; }
