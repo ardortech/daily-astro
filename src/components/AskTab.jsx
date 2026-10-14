@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'preact/hooks';
 import { supabase } from '../lib/supabase.js';
 import { t } from '../i18n';
 
-const SUGGEST = ['什麼時候開工最合適？', '這個月哪天適合搬家？', '明天面試穿什麼顏色？', '這週適合簽約嗎？'];
+const SUGGEST = ['今天感情運如何？', '這週工作要注意什麼？', '下個月哪天適合搬家？', '明天面試穿什麼顏色？', '水星逆行對我有影響嗎？'];
 const STEMS = '甲乙丙丁戊己庚辛壬癸';
 const BRANCHES = '子丑寅卯辰巳午未申酉戌亥';
 const WEEKDAYS = '日一二三四五六';
@@ -30,9 +30,15 @@ function DayCard({ d, best }) {
   );
 }
 
+function formatResetTime(isoStr) {
+  const d = new Date(isoStr);
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+
 export function AskTab({ profile, initialQ, onBack }) {
   const [messages, setMessages] = useState([]);
-  const [remaining, setRemaining] = useState(5);
+  const [remaining, setRemaining] = useState(10);
+  const [resetAt, setResetAt] = useState(null);
   const [loading, setLoading] = useState(false);
   const [input, setInput] = useState('');
   const chatRef = useRef();
@@ -60,7 +66,7 @@ export function AskTab({ profile, initialQ, onBack }) {
   const send = async (q) => {
     q = q.trim();
     if (!q || loading) return;
-    if (remaining <= 0) { return; }
+    if (remaining <= 0) return;
 
     setMessages(prev => [...prev, { role: 'me', text: q }]);
     setLoading(true);
@@ -81,7 +87,8 @@ export function AskTab({ profile, initialQ, onBack }) {
       if (!resp.ok) {
         if (data.error === 'quota_exceeded') {
           setRemaining(0);
-          setMessages(prev => [...prev, { role: 'ai', html: t.ask.quotaUsed }]);
+          if (data.resetAt) setResetAt(data.resetAt);
+          setMessages(prev => [...prev, { role: 'ai', html: t.ask.quotaReset(formatResetTime(data.resetAt)) }]);
         } else {
           setMessages(prev => [...prev, { role: 'ai', html: t.ask.error }]);
         }
@@ -90,7 +97,9 @@ export function AskTab({ profile, initialQ, onBack }) {
       }
 
       setRemaining(data.remaining);
-      setMessages(prev => [...prev, { role: 'ai', text: data.answer, days: data.days }]);
+      if (data.resetAt) setResetAt(data.resetAt);
+      const answerText = data.answer?.trim() || t.ask.emptyAnswer;
+      setMessages(prev => [...prev, { role: 'ai', text: answerText, days: data.days }]);
     } catch {
       setMessages(prev => [...prev, { role: 'ai', html: t.ask.error }]);
     }
@@ -99,11 +108,15 @@ export function AskTab({ profile, initialQ, onBack }) {
 
   const onSubmit = e => { e.preventDefault(); send(input); };
 
+  const quotaText = remaining <= 0 && resetAt
+    ? t.ask.quotaReset(formatResetTime(resetAt))
+    : t.ask.remaining(remaining);
+
   return (
     <section role="tabpanel" class="ask-view">
       <div class="ask-head">
         <button class="back" type="button" onClick={onBack}>← {t.tabs.home}</button>
-        <span class="quota">{t.ask.remaining(remaining)}</span>
+        <span class="quota">{quotaText}</span>
       </div>
       <h1 style="font-size:24px;font-weight:900;margin-top:4px">{t.ask.title}</h1>
       <p class="why" style="margin:2px 0 0">{t.ask.subtitle}</p>
@@ -114,6 +127,7 @@ export function AskTab({ profile, initialQ, onBack }) {
               <span class="who">{t.ask.who}</span>
               {m.html ? <div dangerouslySetInnerHTML={{ __html: m.html }} /> : <div>{m.text}</div>}
               {m.days && m.days.map((d, j) => <DayCard key={j} d={d} best={j === 0} />)}
+              {!m.html && m.text && <div class="fine">{t.ask.disclaimer}</div>}
             </div>
         )}
         {loading && (
@@ -130,8 +144,9 @@ export function AskTab({ profile, initialQ, onBack }) {
           </div>
           <form onSubmit={onSubmit}>
             <input ref={inputRef} value={input} onInput={e => setInput(e.target.value)}
-              placeholder={t.ask.placeholder} autocomplete="off" />
-            <button class="send" type="submit" disabled={loading || !input.trim()}>{t.ask.send}</button>
+              placeholder={t.ask.placeholder} autocomplete="off"
+              disabled={remaining <= 0} />
+            <button class="send" type="submit" disabled={loading || !input.trim() || remaining <= 0}>{t.ask.send}</button>
           </form>
         </div>
       </div>
@@ -146,7 +161,7 @@ export function AskEntry({ go }) {
         <span class="dot">吉</span>{t.ask.entryLabel}
       </button>
       <div class="chips">
-        {SUGGEST.map(s => <button key={s} type="button" onClick={() => go('ask', s)}>{s}</button>)}
+        {SUGGEST.slice(0, 4).map(s => <button key={s} type="button" onClick={() => go('ask', s)}>{s}</button>)}
       </div>
     </div>
   );

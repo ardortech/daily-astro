@@ -107,12 +107,12 @@ export function App() {
         <header class="top">
           <div class="brand"><img class="logo" src="/favicon.svg" alt="" width="30" height="30" /><span>{t.app.name}<small>{t.app.tagline}</small></span></div>
           {view === 'edit' && !firstRun && <button class="chip-btn" type="button" onClick={() => show('settings')}>{t.app.cancel}</button>}
+          <PreviewBadge />
         </header>
         {body}
         {!firstRun && <p class="sample">{t.app.sampleNote}</p>}
       </div>
       {tabbed && <TabBar tab={view} onSelect={show} badge={newCount(follows)} />}
-      <PreviewBadge />
       <Toast msg={toastMsg} />
     </>
   );
