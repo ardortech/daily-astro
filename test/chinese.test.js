@@ -71,7 +71,7 @@ test('relation of the day branch to the year branch', () => {
   }
 });
 
-test('almanac for 2026-10-13: 庚申日, 開日, 財神正東', () => {
+test('almanac for 2026-10-13: 庚申日, 開日, 財神正東, real 宜忌', () => {
   const a = almanac('2026-10-13');
   assert.equal(gz(a.day), '庚申');
   assert.equal(gz(a.year), '丙午');
@@ -83,6 +83,32 @@ test('almanac for 2026-10-13: 庚申日, 開日, 財神正東', () => {
   assert.equal(hourBranch(23), 0);
   assert.equal(hourBranch(9), 5);
   assert.equal(goodHours(8).length, 6);
+  // Real 宜/忌 from lunar-javascript, Traditional Chinese
+  assert.ok(a.yi.length > 0, '宜 should have entries');
+  assert.ok(a.ji.length > 0, '忌 should have entries');
+  assert.ok(a.yi.includes('嫁娶'), '2026-10-13 宜 嫁娶');
+  assert.ok(a.yi.includes('開市'), '2026-10-13 宜 開市');
+  assert.ok(a.ji.includes('安床'), '2026-10-13 忌 安床');
+  // All strings should be Traditional Chinese (no simplified 开动纳 etc.)
+  for (const w of [...a.yi, ...a.ji]) assert.ok(!/[开动纳启钻进补种医谢]/.test(w), `${w} contains SC`);
+});
+
+test('almanac spot-check: 2026-10-14 辛酉 閉日', () => {
+  const a = almanac('2026-10-14');
+  assert.equal(gz(a.day), '辛酉');
+  assert.equal(a.jianchu, 11); // 閉
+  assert.ok(a.yi.includes('嫁娶'));
+  assert.ok(a.ji.includes('開光'));
+  assert.ok(a.ji.includes('栽種'));
+  for (const w of [...a.yi, ...a.ji]) assert.ok(!/[开动纳启钻进补种医谢]/.test(w), `${w} SC`);
+});
+
+test('almanac spot-check: 2026-01-01 閉日', () => {
+  const a = almanac('2026-01-01');
+  assert.ok(a.yi.includes('入宅'));
+  assert.ok(a.ji.includes('嫁娶'));
+  assert.ok(a.ji.includes('開市'));
+  for (const w of [...a.yi, ...a.ji]) assert.ok(!/[开动纳启钻进补种医谢]/.test(w), `${w} SC`);
 });
 
 test('zodiac reading: +1 整體 when the day stem feeds the 補運 element; 太歲', () => {

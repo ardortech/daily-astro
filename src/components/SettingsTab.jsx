@@ -10,7 +10,7 @@ export function pushPreview(p, day, prefs) {
   const S = t.settings, r = day.reading, z = day.zodiac;
   const lines = [];
   if (prefs.daily) lines.push(S.previewAstro(t.houses[r.house][0], t.luckyColors[r.el][r.color]));
-  if (prefs.zodiacDaily) lines.push(S.previewZodiac(t.relations[z.rel][0], t.almanacYiJi[day.alm.jianchu][0][0], t.wuxingColors[p.wuxing.luckyElement]));
+  if (prefs.zodiacDaily) lines.push(S.previewZodiac(t.relations[z.rel][0], day.alm.yi[0] || '', t.wuxingColors[p.wuxing.luckyElement]));
   return { title: S.previewTitle(t.signs[p.sun], animalName(p)), body: lines.join(' ') || S.previewOff };
 }
 

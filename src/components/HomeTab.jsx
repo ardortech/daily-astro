@@ -10,7 +10,7 @@ export function HomeTab({ profile: p, day, follows, go }) {
   const H = t.home, r = day.reading, z = day.zodiac, a = day.alm;
   const [theme, advice] = t.houses[r.house];
   const [relName] = t.relations[z.rel];
-  const [yi, ji] = t.almanacYiJi[a.jianchu];
+  const yi = a.yi, ji = a.ji;
   const lucky = p.wuxing.luckyElement;
   const next = a.goodHours.find(h => h >= day.hour) ?? a.goodHours[0];
   const latest = FEED.find(f => follows[f.a] && !f.upcoming && f.h < 48);
