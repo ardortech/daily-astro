@@ -61,6 +61,7 @@ npm test          # node:test unit tests (src/astro, src/lib/sync row mapping, f
 
 ```
 design/prototype.html      approved prototype (reference only, not shipped)
+design/zodiac/             paper-cut 生肖 (NN-name-256.png / -512.webp, 01 rat … 12 pig = 子 … 亥); copied as-is to public/zodiac/
 design/icons/              ready-made app icons (曙光: sunrise on #1A2140) incl. icon-source.svg and 1024 master;
                            copied as-is to public/ — don't regenerate them
 index.html                 app entry: manifest link, iOS Home Screen meta tags
@@ -72,12 +73,12 @@ src/i18n/index.js          exports `t` (single locale for now)
 src/astro/                 chart + reading logic (astronomy-engine, IANA tz, ~50 cities); indices, never words
 src/astro/chinese.js       農曆, 生肖 (year starts at 立春), 八字 五行, almanac, 生肖 relation of the day
 src/data/sample.js         prototype fixture data (feed, authors' URLs, sample birth)
-src/lib/                   localStorage cache, Supabase client + sync, iOS/standalone detection
+src/lib/                   localStorage cache, Supabase client + sync, iOS/standalone detection, zodiacImg (生肖 image URL)
 netlify/functions/         Netlify (Scheduled) Functions: daily-sky.mjs (00:00 Asia/Taipei → daily_sky)
 supabase/migrations/       SQL migrations, run by hand in the Supabase SQL Editor in filename order
 sw/sw.js                   service-worker template; vite.config.js injects the precache list → dist/sw.js
 public/                    manifest.webmanifest, icons at the root (icon-192/512, icon-maskable-512, apple-touch-icon,
-                           favicon.svg / -32 / -16 / .ico), copied from design/icons/
+                           favicon.svg / -32 / -16 / .ico), copied from design/icons/; zodiac/ from design/zodiac/
 test/                      node:test tests (astro charts, time zones, 農曆 / 生肖 / 八字, row mapping)
 ```
 
@@ -112,8 +113,11 @@ test/                      node:test tests (astro charts, time zones, 農曆 / �
 - **Database:** every table has RLS, explicit grants (tables aren't exposed by default) and
   own-row policies on `(select auth.uid()) = user_id`. New migrations go in `supabase/migrations/`.
 - Service worker: bump nothing by hand. The cache version is a hash of the built file list, the
-  contents of the public/ shell files (icons, manifest) and sw/sw.js itself. The page, icons and
+  contents of the public/ shell files (icons, manifest, zodiac/ images) and sw/sw.js itself. The page, icons and
   manifest are network-first (cache only offline); hashed /assets/* are cache-first.
+- **生肖 images** are one colour on transparent: show them with `<ZodiacImg>` (a `.zimg` CSS mask in
+  `currentColor`), never as `<img>`, so they follow the theme. `zodiacImg(branch, size)` picks the 256 png
+  up to 64px, the 512 webp above. The header shows the 曙光 mark (`/favicon.svg`) before 吉光.
 - **Home Screen icon:** `<link rel="apple-touch-icon" sizes="180x180">` is static in index.html;
   `/apple-touch-icon.png` and `/apple-touch-icon-precomposed.png` are real files at the root. Never add a
   forced catch-all redirect (it would serve index.html for them); test/pwa.test.js checks this.

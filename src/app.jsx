@@ -101,7 +101,7 @@ export function App() {
     <>
       <div class={`app${tabbed ? '' : ' first-run'}`}>
         <header class="top">
-          <div class="brand">{t.app.name}<small>{t.app.tagline}</small></div>
+          <div class="brand"><img class="logo" src="/favicon.svg" alt="" width="30" height="30" /><span>{t.app.name}<small>{t.app.tagline}</small></span></div>
           {view === 'edit' && !firstRun && <button class="chip-btn" type="button" onClick={() => show('settings')}>{t.app.cancel}</button>}
         </header>
         {body}
