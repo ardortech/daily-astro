@@ -205,15 +205,19 @@ input[disabled] { opacity: .5; }
    overflow the ~74px score column on an iPhone, so scale them with the viewport. */
 .scores .stars { display: block; font-size: clamp(11px, 3.4vw, 15px); letter-spacing: 0; }
 
-/* Install guide (iOS, not yet on Home Screen): the first screen until the app is installed,
-   then (for profiles saved in Safari before) a dismissible in-flow card. */
+/* Install guide: on iPhone / in-app browsers the first screen until the app is installed; on
+   Android a card above the form with 安裝吉光 / 稍後; never on desktop. */
 .install { background: var(--night); color: var(--night-fg); border-radius: 16px; padding: 14px 16px; margin-bottom: 14px; display: grid; grid-template-columns: 40px 1fr; gap: 12px; }
 .install .ic { width: 40px; height: 40px; border-radius: 10px; background: var(--gold); color: var(--surface); display: grid; place-items: center; }
 .install .ic svg { width: 22px; height: 22px; }
 .install b { font-family: var(--f-display); font-size: 15px; display: block; }
 .install p { margin: 2px 0 0; font-size: 13.5px; line-height: 1.55; }
 .install .sub { opacity: .7; font-size: 12px; margin-top: 4px; }
-.install button { grid-column: 1 / -1; justify-self: end; background: none; border: 1px solid var(--night-dim); color: var(--night-fg); border-radius: 999px; padding: 3px 14px; font-size: 13px; }
+.install .actions { grid-column: 1 / -1; display: flex; justify-content: flex-end; align-items: center; gap: 8px; }
+.install button { background: none; border: 1px solid var(--night-dim); color: var(--night-fg); border-radius: 999px; padding: 3px 14px; font-size: 13px; }
+.install button.go { background: var(--gold); border-color: var(--gold); color: var(--surface); font-weight: 700; padding: 5px 16px; }
+/* The Android card sits above the first-run form, outside .card. */
+.install + section .card { margin-top: 0; }
 
 /* `.result div` in the prototype also hits each cell's inner label/value divs; only the cell gets a background. */
 .result div div { background: none; padding: 0; border-radius: 0; }

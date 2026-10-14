@@ -7,8 +7,8 @@ import { readFileSync, readdirSync } from 'node:fs';
 const PUBLIC_SHELL = readdirSync('public').filter(f => /\.(webmanifest|png|svg|ico)$/.test(f)).map(f => `/${f}`);
 
 // Emits /sw.js with the exact list of built files to precache, and a version
-// derived from that list plus the contents of the public/ shell files, so each deploy
-// that changes them (e.g. new icons, same file names) gets a fresh cache.
+// derived from that list plus the contents of the public/ shell files and of sw/sw.js,
+// so each deploy that changes them (e.g. new icons, same file names) gets a fresh cache.
 function serviceWorker() {
   return {
     name: 'sw',
@@ -18,6 +18,7 @@ function serviceWorker() {
       const precache = [...new Set(['/', ...built.filter(f => f !== '/'), ...PUBLIC_SHELL])];
       const hash = createHash('sha256').update(precache.join('\n'));
       for (const f of PUBLIC_SHELL) hash.update(readFileSync('public' + f));
+      hash.update(readFileSync('sw/sw.js')); // a change to the worker's own logic also starts a fresh cache
       const version = hash.digest('hex').slice(0, 10);
       const source = readFileSync('sw/sw.js', 'utf8')
         .replace('__SW_VERSION__', version)

@@ -8,8 +8,12 @@ Primary audience: iPhone users in Taiwan, using it from the Home Screen.
 palette (晨光杏 by day, navy night sky in dark mode). Scores are 1–5 stars (★★★☆☆).
 
 Flow: first launch shows the welcome + birth form only (國曆 / 農曆, time, city, 「我不知道出生時間」), no
-tab bar. On iPhone outside the Home Screen app it shows the 加入主畫面 guide instead: birth details are
-only collected inside the installed app (it has its own storage). After the first save, a one-time
+tab bar. On iPhone (Safari, Chrome, Edge, Firefox) outside the Home Screen app, and in in-app
+browsers (LINE, Facebook, Instagram, Messenger: 「請用 Safari 或 Chrome 開啟」 + 複製連結), it shows the
+install guide instead: birth details are only collected inside the installed app (it has its own
+storage). Android Chrome / Edge / Samsung Internet get a 安裝吉光 card (beforeinstallprompt, else menu
+steps) above the form with 稍後; desktop gets no card. Browser detection: `installPlatform()` in
+`src/lib/platform.js`. After the first save, a one-time
 「已為你建立專屬星盤」 screen, then tabs 首頁 / 星座 / 生肖 / 名師 / 設定. Every later launch opens on 首頁;
 the birth form only comes back via 設定 → 我的資料 → 「出生資料填錯了？修改」. No account linking.
 
@@ -107,8 +111,12 @@ test/                      node:test tests (astro charts, time zones, 農曆 / �
   `test/functions.test.js` loads each function in plain Node with detection off.
 - **Database:** every table has RLS, explicit grants (tables aren't exposed by default) and
   own-row policies on `(select auth.uid()) = user_id`. New migrations go in `supabase/migrations/`.
-- Service worker: bump nothing by hand. The cache version is a hash of the built file list and the
-  contents of the public/ shell files (icons, manifest), so replacing an icon also refreshes phones.
+- Service worker: bump nothing by hand. The cache version is a hash of the built file list, the
+  contents of the public/ shell files (icons, manifest) and sw/sw.js itself. The page, icons and
+  manifest are network-first (cache only offline); hashed /assets/* are cache-first.
+- **Home Screen icon:** `<link rel="apple-touch-icon" sizes="180x180">` is static in index.html;
+  `/apple-touch-icon.png` and `/apple-touch-icon-precomposed.png` are real files at the root. Never add a
+  forced catch-all redirect (it would serve index.html for them); test/pwa.test.js checks this.
   `/sw.js` is served with `Cache-Control: no-cache`.
 
 ## Phases

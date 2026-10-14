@@ -83,11 +83,13 @@ export function App() {
 
   let body;
   if (booting && firstRun) body = <div class="boot" />;
-  else if (firstRun) body = needsInstall() ? <InstallWelcome /> : <BirthForm first initial={SAMPLE_BIRTH} onSave={saveProfile} />;
+  else if (firstRun) body = needsInstall()
+    ? <InstallWelcome toast={toast} />
+    : <><InstallGuide toast={toast} /><BirthForm first initial={SAMPLE_BIRTH} onSave={saveProfile} /></>;
   else if (view === 'reveal') body = <Reveal profile={profile} pushTime={prefs.pushTime} onDone={() => show('home')} />;
   else if (view === 'edit') body = <BirthForm initial={profile} onSave={saveProfile} />;
   else body = <>
-    <InstallGuide />
+    <InstallGuide toast={toast} />
     {view === 'home' && <HomeTab profile={profile} day={day} follows={follows} go={show} />}
     {view === 'astro' && <AstroTab profile={profile} day={day} follows={follows} />}
     {view === 'zodiac' && <ZodiacTab profile={profile} day={day} />}
