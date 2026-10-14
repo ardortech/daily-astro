@@ -6,7 +6,8 @@ const SHELL = `shell-${VERSION}`;
 const RUNTIME = 'runtime-fonts';
 
 self.addEventListener('install', event => {
-  event.waitUntil(caches.open(SHELL).then(c => c.addAll(PRECACHE)).then(() => self.skipWaiting()));
+  // cache: 'reload' skips the HTTP cache, so a new worker never precaches stale icons.
+  event.waitUntil(caches.open(SHELL).then(c => c.addAll(PRECACHE.map(u => new Request(u, { cache: 'reload' })))).then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', event => {
@@ -17,24 +18,33 @@ self.addEventListener('activate', event => {
   );
 });
 
+// Page, app icons and manifest: network first (cache only as the offline fallback), so a
+// deploy or a new icon is never hidden behind an old cache. iOS reads the Home Screen icon
+// from these URLs. Hashed /assets/* never change under the same name: cache first.
+const FRESH = /^\/(index\.html)?$|^\/[^/]+\.(png|ico|svg|webmanifest)$/;
+
+function networkFirst(req, key = req) {
+  return fetch(req)
+    .then(res => {
+      if (res.ok) { const copy = res.clone(); caches.open(SHELL).then(c => c.put(key, copy)); }
+      return res;
+    })
+    .catch(() => caches.match(key, { cacheName: SHELL }).then(hit => hit || Response.error()));
+}
+
 self.addEventListener('fetch', event => {
   const req = event.request;
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
 
-  // Page loads: network first so deploys show up, cached shell when offline.
   if (req.mode === 'navigate') {
-    event.respondWith(
-      fetch(req)
-        .then(res => { const copy = res.clone(); caches.open(SHELL).then(c => c.put('/', copy)); return res; })
-        .catch(() => caches.match('/', { cacheName: SHELL })),
-    );
+    event.respondWith(networkFirst(req, '/'));
     return;
   }
 
-  // Hashed build assets, icons, manifest: cache first.
   if (url.origin === self.location.origin) {
-    event.respondWith(caches.match(req).then(hit => hit || fetch(req)));
+    if (FRESH.test(url.pathname)) event.respondWith(networkFirst(req));
+    else event.respondWith(caches.match(req).then(hit => hit || fetch(req)));
     return;
   }
 
@@ -54,10 +64,10 @@ self.addEventListener('fetch', event => {
 self.addEventListener('push', event => {
   let data = {};
   try { data = event.data ? event.data.json() : {}; } catch { data = { body: event.data?.text() }; }
-  event.waitUntil(self.registration.showNotification(data.title || '每日星座', {
+  event.waitUntil(self.registration.showNotification(data.title || '每日吉光', {
     body: data.body || '',
-    icon: '/icons/icon-192.png',
-    badge: '/icons/icon-192.png',
+    icon: '/icon-192.png',
+    badge: '/icon-192.png',
     lang: 'zh-TW',
     data: { url: data.url || '/' },
   }));

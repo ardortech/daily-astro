@@ -16,5 +16,11 @@ export const K = {
 // Used until the user changes them (they aren't written to the cache before that).
 export const DEFAULTS = {
   follows: { tang: true, mafalda: true, susan: true },
-  prefs: { daily: true, pushTime: '07:30' },
+  prefs: { daily: true, zodiacDaily: true, pushTime: '07:30' },
 };
+
+// True when supabase-js has a stored session (its `sb-<project>-auth-token` key), i.e. this
+// device may already have a profile on the server even if the profile cache is gone.
+export function hasStoredSession() {
+  try { return Object.keys(localStorage).some(k => k.startsWith('sb-') && k.endsWith('-auth-token')); } catch { return false; }
+}

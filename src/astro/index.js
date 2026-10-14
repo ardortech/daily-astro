@@ -5,8 +5,10 @@ import { Search, MakeTime } from '#astronomy-engine';
 import { julianDay, sunLon, moonLon, ascendant, signOf, norm } from './math.js';
 import { CITIES, REGIONS, cityById } from './cities.js';
 import { zonedToUtc, dateIn } from './tz.js';
+import { solarToLunar, baziFor, almanac, hourBranch, zodiacReading } from './chinese.js';
 
 export { CITIES, REGIONS, cityById, zonedToUtc, dateIn };
+export * from './chinese.js';
 export const GLYPH = ['♈', '♉', '♊', '♋', '♌', '♍', '♎', '♏', '♐', '♑', '♒', '♓'];
 // Element of a sign index is ELEMENT[sign % 4]: 0 fire, 1 earth, 2 air, 3 water.
 export const elementOf = sign => sign % 4;
@@ -46,6 +48,12 @@ export function chartFor(dateStr, timeStr, cityId, noTime) {
     moonUncertain = signOf(moonLon(start)) !== signOf(moonLon(last));
   }
   return { sun: signOf(sunLon(jd)), moon: signOf(moonLon(jd)), rising: noTime ? null : signOf(ascendant(jd, c.lat, c.lon)), sunUncertain, moonUncertain };
+}
+
+// Birth inputs { date, time, city, noTime, calendar } → the full profile: the chart
+// (sun, moon, rising + uncertainty), the 農曆 birth date, 生肖 and 八字 五行.
+export function profileFor(b) {
+  return { ...b, ...chartFor(b.date, b.time, b.city, b.noTime), lunar: solarToLunar(b.date), ...baziFor(b.date, b.time, b.city, b.noTime) };
 }
 
 // First instant in [start, end) when the Moon enters a new sign, or null.
@@ -102,4 +110,18 @@ export function reading(p, t) {
   return { house, aspect, el, color, colorHex: COLOR_HEX[el][color], itemEl: elementOf(base), item, base,
     // overall, love, career, money — 1..5 stars
     scores: [sc(1), sc(5), sc(9), sc(13)] };
+}
+
+// Everything the screens show for one day: the sky now, the almanac for the device's
+// local date, the 星座 reading and (with a profile) the 生肖 reading.
+export function today(profile, now = new Date()) {
+  const s = sky(now);
+  const date = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  const alm = almanac(date);
+  return {
+    now, date, sky: s, alm,
+    hour: hourBranch(now.getHours()),
+    reading: profile && reading(profile, s),
+    zodiac: profile && zodiacReading(profile, alm),
+  };
 }

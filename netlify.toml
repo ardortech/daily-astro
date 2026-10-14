@@ -28,6 +28,31 @@
     Content-Type = "application/manifest+json; charset=utf-8"
     Cache-Control = "no-cache"
 
+# App icons: explicit type, and revalidated so a new icon reaches phones on the next visit.
+# Netlify serves these files directly (there is no SPA fallback redirect in this site);
+# test/pwa.test.js fails if a catch-all redirect is ever added that could shadow them.
+[[headers]]
+  for = "/apple-touch-icon.png"
+  [headers.values]
+    Content-Type = "image/png"
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+[[headers]]
+  for = "/apple-touch-icon-precomposed.png"
+  [headers.values]
+    Content-Type = "image/png"
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+[[headers]]
+  for = "/icon-*"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+[[headers]]
+  for = "/favicon*"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
 [[headers]]
   for = "/assets/*"
   [headers.values]

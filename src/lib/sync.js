@@ -60,41 +60,58 @@ async function pull(supabase, userId) {
   const followed = new Set(f.data.map(r => r.author_id));
   return {
     profile: fromRow(p.data),
-    prefs: { pushTime: p.data.push_time.slice(0, 5), daily: p.data.daily_enabled },
+    prefs: { pushTime: p.data.push_time.slice(0, 5), daily: p.data.daily_enabled, zodiacDaily: p.data.zodiac_daily_enabled ?? true },
     follows: Object.fromEntries(AUTHOR_IDS.map(a => [a, followed.has(a)])),
   };
 }
 
-// App profile { date, time, city, noTime, sun, moon, sunUncertain, moonUncertain, rising }
-// + prefs { pushTime, daily } ⇄ profiles row. Without a birth time only sun + moon are stored.
+// App profile { date, time, city, noTime, calendar, sun, moon, sunUncertain, moonUncertain,
+// rising, lunar, zodiac, zodiacUncertain, wuxing } + prefs { pushTime, daily, zodiacDaily }
+// ⇄ profiles row. Without a birth time only sun + moon are stored.
 export function toRow(userId, p, prefs = {}) {
+  const w = p.wuxing;
   return {
     user_id: userId,
     birth_date: p.date,
     birth_time: p.noTime ? null : p.time,
+    birth_calendar: p.calendar === 'lunar' ? 'lunar' : 'solar',
+    lunar_year: p.lunar.year,
+    lunar_month: p.lunar.month,
+    lunar_day: p.lunar.day,
+    lunar_leap: p.lunar.leap,
     city_id: p.city,
     sun: p.sun,
     moon: p.moon,
     sun_uncertain: !!p.sunUncertain,
     moon_uncertain: !!p.moonUncertain,
     rising: p.noTime ? null : p.rising,
+    zodiac: p.zodiac,
+    zodiac_uncertain: !!p.zodiacUncertain,
+    wuxing: { pillars: w.pillars, counts: w.counts, day_master: w.dayMaster, lucky_element: w.luckyElement },
     push_time: prefs.pushTime || '07:30',
     daily_enabled: prefs.daily ?? true,
+    zodiac_daily_enabled: prefs.zodiacDaily ?? true,
     time_zone: deviceTimeZone(),
   };
 }
 
 export function fromRow(r) {
   const noTime = r.birth_time === null;
+  const w = r.wuxing;
   return {
     date: r.birth_date,
     time: noTime ? '12:00' : r.birth_time.slice(0, 5),
     city: r.city_id,
     noTime,
+    calendar: r.birth_calendar ?? 'solar',
     sun: r.sun,
     moon: r.moon,
     sunUncertain: r.sun_uncertain,
     moonUncertain: r.moon_uncertain,
     rising: noTime ? null : r.rising,
+    lunar: r.lunar_year == null ? null : { year: r.lunar_year, month: r.lunar_month, day: r.lunar_day, leap: r.lunar_leap },
+    zodiac: r.zodiac,
+    zodiacUncertain: !!r.zodiac_uncertain,
+    wuxing: w && { pillars: w.pillars, counts: w.counts, dayMaster: w.day_master, luckyElement: w.lucky_element },
   };
 }

@@ -3,11 +3,12 @@ import preact from '@preact/preset-vite';
 import { createHash } from 'node:crypto';
 import { readFileSync, readdirSync } from 'node:fs';
 
-// Static files from public/ that belong to the app shell.
-const PUBLIC_SHELL = ['/manifest.webmanifest', '/favicon.ico', ...readdirSync('public/icons').filter(f => f.endsWith('.png')).map(f => `/icons/${f}`)];
+// Static files from public/ that belong to the app shell (manifest, icons, favicons).
+const PUBLIC_SHELL = readdirSync('public').filter(f => /\.(webmanifest|png|svg|ico)$/.test(f)).map(f => `/${f}`);
 
 // Emits /sw.js with the exact list of built files to precache, and a version
-// derived from that list so each deploy gets a fresh cache.
+// derived from that list plus the contents of the public/ shell files and of sw/sw.js,
+// so each deploy that changes them (e.g. new icons, same file names) gets a fresh cache.
 function serviceWorker() {
   return {
     name: 'sw',
@@ -15,7 +16,10 @@ function serviceWorker() {
     generateBundle(_, bundle) {
       const built = Object.keys(bundle).filter(f => !f.endsWith('.map')).map(f => '/' + f.replace(/^index\.html$/, ''));
       const precache = [...new Set(['/', ...built.filter(f => f !== '/'), ...PUBLIC_SHELL])];
-      const version = createHash('sha256').update(precache.join('\n')).digest('hex').slice(0, 10);
+      const hash = createHash('sha256').update(precache.join('\n'));
+      for (const f of PUBLIC_SHELL) hash.update(readFileSync('public' + f));
+      hash.update(readFileSync('sw/sw.js')); // a change to the worker's own logic also starts a fresh cache
+      const version = hash.digest('hex').slice(0, 10);
       const source = readFileSync('sw/sw.js', 'utf8')
         .replace('__SW_VERSION__', version)
         .replace('__SW_PRECACHE__', JSON.stringify(precache, null, 2));
