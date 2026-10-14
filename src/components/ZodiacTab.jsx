@@ -3,6 +3,7 @@ import { t } from '../i18n';
 import { gz, animalName, dayMasterName } from './labels.js';
 import { Stars } from './Stars.jsx';
 import { Pillars, WuxingRadar } from './Wuxing.jsx';
+import { ZodiacImg } from './ZodiacImg.jsx';
 
 // 生肖: today's relation to the year branch, 補運 colour, 八字 五行 and the almanac.
 export function ZodiacTab({ profile: p, day }) {
@@ -21,7 +22,10 @@ export function ZodiacTab({ profile: p, day }) {
           <h1>{Z.headline(me, relName)}</h1>
           <span class={`rel ${z.tone}`}>{Z.relBadge(gz(a.day), gz(w.pillars[0]), t.animals[p.zodiac])}</span>
         </div>
-        <div class="animal">{t.animals[p.zodiac]}<small>{me}{p.zodiacUncertain ? `・${Z.approx}` : ''}</small></div>
+        <div class="animal">
+          <ZodiacImg branch={p.zodiac} size={80} color="var(--gold)" />
+          <small>{Z.heroLabel(t.animals[p.zodiac], me)}{p.zodiacUncertain ? `・${Z.approx}` : ''}</small>
+        </div>
         <div class="moonline">
           {Z.line(gz(a.day), dayEl)}<b>{t.animals[a.chong]}</b>{Z.lineLucky(luckyAnimals(a.day[1]).map(u => t.animals[u]).join('、'))}{z.taisui !== null ? Z.lineTaisui(t.taisui[z.taisui]) : ''}
         </div>

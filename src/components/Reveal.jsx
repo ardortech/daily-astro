@@ -2,6 +2,7 @@ import { GLYPH } from '../astro';
 import { t } from '../i18n';
 import { gz, animalName, dayMasterName } from './labels.js';
 import { Pillars, WuxingRadar } from './Wuxing.jsx';
+import { ZodiacImg } from './ZodiacImg.jsx';
 
 // One-time screen after the first save: the chart, 八字 五行 and what happens next.
 export function Reveal({ profile: p, pushTime, onDone }) {
@@ -24,7 +25,7 @@ export function Reveal({ profile: p, pushTime, onDone }) {
       </div>
       <div class="card" style="margin-top:14px">
         <div class="label" style="color:var(--cinnabar)">{R.wxLabel}</div>
-        <h2 style="margin-top:2px">{R.wxTitle(gz(w.pillars[0]), animalName(p), dayMasterName(w))}</h2>
+        <div class="ztitle"><ZodiacImg branch={p.zodiac} size={56} color="var(--cinnabar)" /><h2 style="margin:2px 0 0">{R.wxTitle(gz(w.pillars[0]), animalName(p), dayMasterName(w))}</h2></div>
         <Pillars wuxing={w} />
         <WuxingRadar wuxing={w} />
         <p class="why" style="margin-top:10px">{R.wxNote(dayMasterName(w), t.dayMasterKeywords[w.dayMaster], t.wuxing[w.luckyElement], t.wuxingColors[w.luckyElement], t.wuxingItems[w.luckyElement])}</p>

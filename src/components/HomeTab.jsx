@@ -3,6 +3,7 @@ import { AUTHORS, FEED } from '../data/sample.js';
 import { t } from '../i18n';
 import { animalName } from './labels.js';
 import { Stars } from './Stars.jsx';
+import { ZodiacImg } from './ZodiacImg.jsx';
 
 // 首頁: today's 星座 + 生肖 at a glance, lucky items, and what's next.
 export function HomeTab({ profile: p, day, follows, go }) {
@@ -37,7 +38,7 @@ export function HomeTab({ profile: p, day, follows, go }) {
         </button>
         <button class="sum zcard" type="button" onClick={() => go('zodiac')}>
           <div class="k">{H.zodiacLabel}</div>
-          <div class="big">{animalName(p)}・<b>{relName}</b></div>
+          <div class="ztitle"><ZodiacImg branch={p.zodiac} size={42} color="var(--cinnabar)" /><div class="big">{animalName(p)}・<b>{relName}</b></div></div>
           <Stars label={t.scoreLabels[0]} value={z.scores[0]} />
           {yiji}
           <div class="more" style="color:var(--cinnabar)">{H.zodiacMore}</div>

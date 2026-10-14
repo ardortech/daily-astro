@@ -4,7 +4,11 @@ import { createHash } from 'node:crypto';
 import { readFileSync, readdirSync } from 'node:fs';
 
 // Static files from public/ that belong to the app shell (manifest, icons, favicons).
-const PUBLIC_SHELL = readdirSync('public').filter(f => /\.(webmanifest|png|svg|ico)$/.test(f)).map(f => `/${f}`);
+// Plus the paper-cut 生肖 images in public/zodiac/ (shown offline too).
+const PUBLIC_SHELL = [
+  ...readdirSync('public').filter(f => /\.(webmanifest|png|svg|ico)$/.test(f)).map(f => `/${f}`),
+  ...readdirSync('public/zodiac').filter(f => /\.(png|webp)$/.test(f)).sort().map(f => `/zodiac/${f}`),
+];
 
 // Emits /sw.js with the exact list of built files to precache, and a version
 // derived from that list plus the contents of the public/ shell files and of sw/sw.js,

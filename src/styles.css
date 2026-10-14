@@ -225,3 +225,16 @@ input[disabled] { opacity: .5; }
 /* 「約」 after an uncertain 生肖. */
 .result small { font-size: 11px; font-weight: 500; }
 .boot { min-height: 50vh; }
+
+/* 曙光 mark before 吉光 in the header. */
+.top { align-items: center; }
+.brand { display: flex; align-items: center; gap: 8px; }
+.brand .logo { width: 30px; height: 30px; border-radius: 8px; flex: none; display: block; }
+/* Paper-cut 生肖 (public/zodiac/): one colour on transparent, drawn as a mask in currentColor. */
+.zimg { display: inline-block; flex: none; background: currentColor; -webkit-mask: var(--zi) center/contain no-repeat; mask: var(--zi) center/contain no-repeat; }
+.ztitle { display: flex; align-items: center; gap: 8px; min-width: 0; }
+/* 生肖 tab hero: the image with 「龍・火龍」 under it, replacing the prototype's ringed character. */
+.sky .animal { width: auto; height: auto; border: 0; border-radius: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; text-align: center; }
+.sky .animal small { position: static; background: none; color: var(--night-fg); font-size: 12.5px; font-weight: 700; padding: 0; white-space: nowrap; }
+/* Narrow 首頁 card next to the 42px image: break after 「・」, never inside 「六合日」. */
+.ztitle .big b { white-space: nowrap; }

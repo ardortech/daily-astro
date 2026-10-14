@@ -191,6 +191,8 @@ export default {
 
   zodiac: {
     animal: (el, animal) => `${el}${animal}`,
+    // 生肖 tab hero, under the image: 龍・火龍
+    heroLabel: (animal, name) => `${animal}・${name}`,
     approx: '約',
     headline: (animal, rel) => `${animal}・${rel}`,
     relBadge: (dayGz, yearGz, animal) => `${dayGz}日 × ${yearGz}${animal}`,
