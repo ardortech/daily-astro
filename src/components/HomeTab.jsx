@@ -65,6 +65,14 @@ export function HomeTab({ profile: p, day, follows, go }) {
           <div class="why">{H.caiWhy}</div>
         </div>
       </div>
+      {day.personal && (
+        <div class="card" style="margin-top:10px;padding:8px 18px">
+          <div class="today-row"><span class="label">{H.tenGodLabel}</span><span><b>{t.tenGods[day.personal.tenGod]}</b> {t.tenGodHints[day.personal.tenGod]}</span></div>
+          {day.personal.moonLinks.length > 0 && (
+            <div class="today-row"><span class="label">{H.moonNatal}</span><span>{day.personal.moonLinks.map(l => `${t.bodies[l.body === 'moon' ? 'moon' : 'rising']}${t.aspects[l.aspect][0]}`).join('、')}</span></div>
+          )}
+        </div>
+      )}
       <div class="card" style="margin-top:10px;padding:6px 18px">
         <div class="today-row"><span class="label">{H.todayYi}</span><span>{yi.join('・')}</span><span /></div>
         <div class="today-row"><span class="label">{H.nextHour}</span><span>{t.hourRange(next)}</span><span /></div>

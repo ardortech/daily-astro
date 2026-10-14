@@ -112,6 +112,16 @@ export default {
   wuxingColors: ['竹青綠', '朱砂紅', '大地黃', '月白', '墨藍'],
   wuxingItems: ['木質或綠色小物', '紅色系配件', '陶瓷、黃玉', '金屬飾品', '黑曜石、深藍色小物'],
 
+  // 十神 names (index from tenGod())
+  tenGods: ['比肩', '劫財', '食神', '傷官', '偏財', '正財', '七殺', '正官', '偏印', '正印'],
+  tenGodHints: [
+    '同類相助，適合團隊合作', '競爭意識強，把握機會但別衝動',
+    '表達順暢，適合創作和社交', '才華洋溢但容易直言，注意措辭',
+    '意外之財，適合投資和理財', '穩定收入，適合簽約和談薪',
+    '壓力和挑戰，適合突破但別硬碰', '有貴人提點，適合面試和升遷',
+    '靈感敏銳，適合學習和研究', '有長輩或老師相助，適合求教',
+  ],
+
   // 生肖 relation of the day: [name, today's focus, watch-out]; index from src/astro relation()
   relations: [
     ['六合日', '貴人運旺，適合談合作、約重要的人見面，開口請求容易得到幫忙。', '好事來得快，別因為太順而答應太多。'],
@@ -156,6 +166,9 @@ export default {
     nextHour: '下個吉時',
     author: '名師',
     authorGo: '看 →',
+    whatChanged: '今天有什麼不同',
+    tenGodLabel: '十神',
+    moonNatal: '月亮與你',
   },
 
   astro: {

@@ -172,6 +172,19 @@ export function relation(d, u) {
 // Animals in 六合 or 三合 with the day: today's 貴人生肖.
 export const luckyAnimals = db => [...Array(12).keys()].filter(u => relation(db, u) <= 1);
 
+// 十神: the relationship of another stem to the day master.
+// 0 比肩 1 劫財 2 食神 3 傷官 4 偏財 5 正財 6 七殺 7 正官 8 偏印 9 正印
+export function tenGod(dayMasterStem, otherStem) {
+  const dmEl = STEM_EL[dayMasterStem];
+  const otherEl = STEM_EL[otherStem];
+  const samePol = (dayMasterStem % 2) === (otherStem % 2);
+  const rel = (otherEl - dmEl + 5) % 5; // 0 same, 1 I generate, 2 wealth, 3 kills me, 4 generates me
+  return rel * 2 + (samePol ? 0 : 1);
+}
+
+// Today's 十神 of the day stem relative to the user's day master.
+export function dayTenGod(dayMasterStem, dayStem) { return tenGod(dayMasterStem, dayStem); }
+
 // 生肖 reading for a profile on a day: { rel, tone, scores, boost, taisui }.
 // boost: the day stem's element is the person's 補運 element (+1 整體 star).
 // taisui: 0 值太歲, 1 沖太歲, 2 害太歲, or null.

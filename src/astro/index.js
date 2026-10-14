@@ -5,7 +5,7 @@ import { Search, MakeTime } from '#astronomy-engine';
 import { julianDay, sunLon, moonLon, ascendant, signOf, norm, planetLon, isRetrograde, moonIllumination } from './math.js';
 import { CITIES, REGIONS, cityById } from './cities.js';
 import { zonedToUtc, dateIn } from './tz.js';
-import { solarToLunar, baziFor, almanac, hourBranch, zodiacReading } from './chinese.js';
+import { solarToLunar, baziFor, almanac, hourBranch, zodiacReading, dayTenGod, STEM_EL, BRANCH_EL } from './chinese.js';
 
 export { CITIES, REGIONS, cityById, zonedToUtc, dateIn };
 export * from './chinese.js';
@@ -206,16 +206,56 @@ export function reading(p, t) {
     scores: [sc(1), sc(5), sc(9), sc(13)] };
 }
 
+// Lucky colour for the personal layer: combine day stem element, moon element and
+// the user's weakest 五行, hashed by date so it doesn't repeat day to day.
+export function personalColor(profile, dateStr, moonSign) {
+  const moonEl = moonSign % 4; // fire/earth/air/water → mapped to 五行 loosely
+  const lucky = profile.wuxing.luckyElement;
+  const dayKey = dateStr + lucky;
+  const h = hash(dayKey);
+  // Pick from the lucky element's colour set, rotated by hash
+  return { element: lucky, index: h % 3 };
+}
+
+// Moon's relationship to the user's natal Moon and Ascendant.
+export function moonNatalLinks(profile, moonSign) {
+  const links = [];
+  const natalMoon = profile.moon;
+  const sep = Math.abs(moonSign - natalMoon);
+  const dist = Math.min(sep, 12 - sep);
+  if (dist === 0) links.push({ body: 'moon', aspect: 0 }); // conjunct natal Moon
+  else if (dist === 4) links.push({ body: 'moon', aspect: 4 }); // trine
+  else if (dist === 6) links.push({ body: 'moon', aspect: 6 }); // opposition
+  else if (dist === 3) links.push({ body: 'moon', aspect: 3 }); // square
+
+  if (profile.rising != null) {
+    const rSep = Math.abs(moonSign - profile.rising);
+    const rDist = Math.min(rSep, 12 - rSep);
+    if (rDist === 0) links.push({ body: 'rising', aspect: 0 });
+    else if (rDist === 4) links.push({ body: 'rising', aspect: 4 });
+    else if (rDist === 6) links.push({ body: 'rising', aspect: 6 });
+  }
+  return links;
+}
+
 // Everything the screens show for one day: the sky now, the almanac for the device's
 // local date, the 星座 reading and (with a profile) the 生肖 reading.
 export function today(profile, now = new Date()) {
   const s = sky(now);
   const date = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
   const alm = almanac(date);
+  const r = profile && reading(profile, s);
+  const z = profile && zodiacReading(profile, alm);
+  const personal = profile ? {
+    tenGod: dayTenGod(profile.wuxing.dayMaster, alm.day[0]),
+    moonLinks: moonNatalLinks(profile, s.moon),
+    luckyColor: personalColor(profile, date, s.moon),
+  } : null;
   return {
     now, date, sky: s, alm,
     hour: hourBranch(now.getHours()),
-    reading: profile && reading(profile, s),
-    zodiac: profile && zodiacReading(profile, alm),
+    reading: r,
+    zodiac: z,
+    personal,
   };
 }

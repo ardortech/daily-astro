@@ -1,7 +1,7 @@
 // 農曆 conversion, 生肖 at 立春, 八字 pillars and the 生肖 relation of the day.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { solarToLunar, lunarToSolar, lunarMonths, baziFor, almanac, relation, goodHours, hourBranch, zodiacReading } from '../src/astro/chinese.js';
+import { solarToLunar, lunarToSolar, lunarMonths, baziFor, almanac, relation, goodHours, hourBranch, zodiacReading, tenGod, dayTenGod } from '../src/astro/chinese.js';
 
 const STEMS = '甲乙丙丁戊己庚辛壬癸', BRANCHES = '子丑寅卯辰巳午未申酉戌亥';
 const gz = ([s, b]) => STEMS[s] + BRANCHES[b];
@@ -101,6 +101,31 @@ test('almanac spot-check: 2026-10-14 辛酉 閉日', () => {
   assert.ok(a.ji.includes('開光'));
   assert.ok(a.ji.includes('栽種'));
   for (const w of [...a.yi, ...a.ji]) assert.ok(!/[开动纳启钻进补种医谢]/.test(w), `${w} SC`);
+});
+
+test('十神 (ten gods) calculation', () => {
+  // 甲(0) vs 甲(0): same element, same polarity → 比肩 (0)
+  assert.equal(tenGod(0, 0), 0);
+  // 甲(0) vs 乙(1): same element, diff polarity → 劫財 (1)
+  assert.equal(tenGod(0, 1), 1);
+  // 甲(0) vs 丙(2): 木生火, same polarity → 食神 (2)
+  assert.equal(tenGod(0, 2), 2);
+  // 甲(0) vs 丁(3): 木生火, diff polarity → 傷官 (3)
+  assert.equal(tenGod(0, 3), 3);
+  // 甲(0) vs 戊(4): 木克土, same polarity → 偏財 (4)
+  assert.equal(tenGod(0, 4), 4);
+  // 甲(0) vs 己(5): 木克土, diff polarity → 正財 (5)
+  assert.equal(tenGod(0, 5), 5);
+  // 甲(0) vs 庚(6): 金克木, same polarity → 七殺 (6)
+  assert.equal(tenGod(0, 6), 6);
+  // 甲(0) vs 辛(7): 金克木, diff polarity → 正官 (7)
+  assert.equal(tenGod(0, 7), 7);
+  // 甲(0) vs 壬(8): 水生木, same polarity → 偏印 (8)
+  assert.equal(tenGod(0, 8), 8);
+  // 甲(0) vs 癸(9): 水生木, diff polarity → 正印 (9)
+  assert.equal(tenGod(0, 9), 9);
+  // dayTenGod convenience wrapper
+  assert.equal(dayTenGod(8, 6), tenGod(8, 6)); // 壬 vs 庚
 });
 
 test('almanac spot-check: 2026-01-01 閉日', () => {
