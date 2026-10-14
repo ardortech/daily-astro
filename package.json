@@ -19,6 +19,7 @@
     "test": "node --test test/*.test.js"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.134.0",
     "@supabase/supabase-js": "^2.117.3",
     "astronomy-engine": "^2.1.19",
     "lunar-javascript": "^1.7.7",
