@@ -1,7 +1,7 @@
 import { GLYPH } from '../astro';
 import { t } from '../i18n';
 import { gz, animalName, dayMasterName } from './labels.js';
-import { Pillars, WuxingBars } from './Wuxing.jsx';
+import { Pillars, WuxingRadar } from './Wuxing.jsx';
 
 // One-time screen after the first save: the chart, 八字 五行 and what happens next.
 export function Reveal({ profile: p, pushTime, onDone }) {
@@ -17,7 +17,7 @@ export function Reveal({ profile: p, pushTime, onDone }) {
         <div class="k label" style="color:var(--gold);opacity:1">{R.chart}</div>
         <div class="rv-list">
           {items.map(([s, body, what, kw]) => (
-            <div key={body} class="rv-item"><div class="g">{GLYPH[s]}{'︎'}</div><div><b>{R.item(t.bodies[body], t.signs[s])}</b><span>{what}：{kw}</span></div></div>
+            <div key={body} class="rv-item"><div class="g">{GLYPH[s]}</div><div><b>{R.item(t.bodies[body], t.signs[s])}</b><span>{what}：{kw}</span></div></div>
           ))}
           {p.rising === null && <p class="why" style="color:var(--night-fg);opacity:.7;margin:0">{R.noRising}</p>}
         </div>
@@ -26,7 +26,7 @@ export function Reveal({ profile: p, pushTime, onDone }) {
         <div class="label" style="color:var(--cinnabar)">{R.wxLabel}</div>
         <h2 style="margin-top:2px">{R.wxTitle(gz(w.pillars[0]), animalName(p), dayMasterName(w))}</h2>
         <Pillars wuxing={w} />
-        <WuxingBars wuxing={w} />
+        <WuxingRadar wuxing={w} />
         <p class="why" style="margin-top:10px">{R.wxNote(dayMasterName(w), t.dayMasterKeywords[w.dayMaster], t.wuxing[w.luckyElement], t.wuxingColors[w.luckyElement], t.wuxingItems[w.luckyElement])}</p>
       </div>
       <div class="card" style="margin-top:14px">

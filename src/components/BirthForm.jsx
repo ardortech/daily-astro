@@ -93,7 +93,7 @@ export function BirthForm({ initial, first, onSave }) {
           {p && <>
             <div class="result">
               {[[p.sunUncertain ? 'sunApprox' : 'sun', p.sun], [p.moonUncertain ? 'moonApprox' : 'moon', p.moon], ['rising', p.rising]].map(([k, v]) => (
-                <div key={k}><div class="label">{t.bodies[k]}</div><div class="big">{v === null ? '—' : GLYPH[v] + '︎' + t.signs[v]}</div></div>
+                <div key={k}><div class="label">{t.bodies[k]}</div><div class="big">{v === null ? '—' : GLYPH[v] + t.signs[v]}</div></div>
               ))}
               <div class="zod"><div class="label">{B.zodiac}</div><div class="big">{animalName(p)}{p.zodiacUncertain && <small>{B.approx}</small>}</div></div>
             </div>

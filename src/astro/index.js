@@ -9,7 +9,8 @@ import { solarToLunar, baziFor, almanac, hourBranch, zodiacReading } from './chi
 
 export { CITIES, REGIONS, cityById, zonedToUtc, dateIn };
 export * from './chinese.js';
-export const GLYPH = ['♈', '♉', '♊', '♋', '♌', '♍', '♎', '♏', '♐', '♑', '♒', '♓'];
+// U+FE0E (text presentation) keeps iOS from drawing them as purple emoji.
+export const GLYPH = ['♈', '♉', '♊', '♋', '♌', '♍', '♎', '♏', '♐', '♑', '♒', '♓'].map(g => g + '\uFE0E');
 // Element of a sign index is ELEMENT[sign % 4]: 0 fire, 1 earth, 2 air, 3 water.
 export const elementOf = sign => sign % 4;
 // Lucky colour hex per element; names are i18n luckyColors[element][i].
