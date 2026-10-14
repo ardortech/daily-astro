@@ -14,6 +14,7 @@ import { Reveal } from './components/Reveal.jsx';
 import { TabBar, TABS } from './components/TabBar.jsx';
 import { Toast } from './components/Toast.jsx';
 import { InstallGuide, InstallWelcome, needsInstall } from './components/InstallGuide.jsx';
+import { AskTab, AskEntry } from './components/AskTab.jsx';
 
 // Recompute everything derived from the birth inputs, so caches and rows written by
 // older versions (no 生肖 / 五行, older engines) pick up the current code.
@@ -40,12 +41,14 @@ export function App() {
 
   const day = useMemo(() => today(profile), [view, profile]);
 
+  const [askQ, setAskQ] = useState(null);
+
   const toast = msg => {
     setToastMsg(msg);
     clearTimeout(toastTimer.current);
     toastTimer.current = setTimeout(() => setToastMsg(''), 2200);
   };
-  const show = next => { setView(next); window.scrollTo(0, 0); };
+  const show = (next, q) => { if (next === 'ask') setAskQ(q || null); setView(next); window.scrollTo(0, 0); };
   // pushTime → push_time, daily → daily_enabled, zodiacDaily → zodiac_daily_enabled.
   const setPrefs = p => {
     const changed = p.pushTime !== prefs.pushTime || p.daily !== prefs.daily || p.zodiacDaily !== prefs.zodiacDaily;
@@ -88,6 +91,7 @@ export function App() {
     : <><InstallGuide toast={toast} /><BirthForm first initial={SAMPLE_BIRTH} onSave={saveProfile} /></>;
   else if (view === 'reveal') body = <Reveal profile={profile} pushTime={prefs.pushTime} onDone={() => show('home')} />;
   else if (view === 'edit') body = <BirthForm initial={profile} onSave={saveProfile} />;
+  else if (view === 'ask') body = <AskTab profile={profile} initialQ={askQ} onBack={() => show('home')} />;
   else body = <>
     <InstallGuide toast={toast} />
     {view === 'home' && <HomeTab profile={profile} day={day} follows={follows} go={show} />}

@@ -225,6 +225,26 @@ export default {
     note: '五行只計天干地支本氣。宜忌依萬年曆資料，僅供參考。',
   },
 
+  ask: {
+    title: '問吉光',
+    subtitle: '依農民曆、你的生肖五行和星象幫你擇日、挑顏色。',
+    who: '吉光',
+    entryLabel: '問問吉光：什麼時候開工最合適？',
+    greeting: me => `早安！我可以幫你挑好日子、選幸運色。會依你的${me}、五行和星盤來算，想問什麼？`,
+    remaining: n => `今天還可以問 ${n} 次`,
+    placeholder: '輸入問題，例如：下個月哪天適合搬家？',
+    send: '送出',
+    thinking: '正在翻農民曆…',
+    error: '抱歉，出了點問題，請稍後再試。',
+    quotaUsed: '今天的提問次數用完了，明天再來問吧！',
+    bestTag: '最推薦',
+    steadyTag: '平穩',
+    goodHourLabel: '吉時',
+    monthSep: '月・週',
+    dayChar: '日',
+    disclaimer: '僅供參考，重要決定請自行判斷。',
+  },
+
   reveal: {
     label: '已為你建立專屬星盤',
     title: (sign, animal) => `${sign}座・${animal}`,

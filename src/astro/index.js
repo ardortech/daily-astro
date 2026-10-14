@@ -3,6 +3,7 @@
 // Returns indices only; all wording lives in src/i18n.
 import { Search, MakeTime } from '#astronomy-engine';
 import { julianDay, sunLon, moonLon, ascendant, signOf, norm, planetLon, isRetrograde, moonIllumination } from './math.js';
+export { signOf, julianDay, moonLon, sunLon };
 import { CITIES, REGIONS, cityById } from './cities.js';
 import { zonedToUtc, dateIn } from './tz.js';
 import { solarToLunar, baziFor, almanac, hourBranch, zodiacReading, dayTenGod, STEM_EL, BRANCH_EL } from './chinese.js';

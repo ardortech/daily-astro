@@ -4,6 +4,7 @@ import { t } from '../i18n';
 import { animalName } from './labels.js';
 import { Stars } from './Stars.jsx';
 import { ZodiacImg } from './ZodiacImg.jsx';
+import { AskEntry } from './AskTab.jsx';
 
 // 首頁: today's 星座 + 生肖 at a glance, lucky items, and what's next.
 export function HomeTab({ profile: p, day, follows, go }) {
@@ -44,6 +45,7 @@ export function HomeTab({ profile: p, day, follows, go }) {
           <div class="more" style="color:var(--cinnabar)">{H.zodiacMore}</div>
         </button>
       </div>
+      <AskEntry go={go} />
       <div class="trio-lucky">
         <div class="lk">
           <div class="label">{H.luckyColor}</div>
