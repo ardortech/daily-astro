@@ -35,7 +35,7 @@ export function Wheel({ sky, profile }) {
       const hi = i === profile.sun || i === profile.moon || i === profile.rising;
       g.globalAlpha = hi ? 1 : .55; g.fillStyle = hi ? gold : fg;
       g.font = '18px serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
-      g.fillText(GLYPH[i] + '︎', c + Math.cos(m) * (R - 15), c - Math.sin(m) * (R - 15));
+      g.fillText(GLYPH[i], c + Math.cos(m) * (R - 15), c - Math.sin(m) * (R - 15));
     }
     const ma = pos(sky.mLon);
     g.globalAlpha = 1; g.fillStyle = fg;

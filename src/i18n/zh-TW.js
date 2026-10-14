@@ -209,6 +209,8 @@ export default {
     baziTitle: (dm, animal) => `日主${dm}・${animal}`,
     pillarNames: ['年', '月', '日', '時'],
     pillar: n => `${n}柱`,
+    wxAria: parts => `五行分布：${parts.join('、')}`,
+    wxLucky: '補運',
     unknown: '？',
     wxNote: (el, noHour) => `${el}最少，是你的補運五行。${noHour ? ' 沒有出生時間，只算年、月、日三柱。' : ''} 年柱生肖以立春分界。`,
     almanacLabel: '今日農民曆',

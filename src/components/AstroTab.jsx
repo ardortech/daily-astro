@@ -4,7 +4,7 @@ import { t } from '../i18n';
 import { Stars } from './Stars.jsx';
 import { Wheel } from './Wheel.jsx';
 
-const g = s => GLYPH[s] + '︎';
+const g = s => GLYPH[s];
 
 // 星座: the Moon's transit through the personal chart.
 export function AstroTab({ profile, day, follows }) {

@@ -2,7 +2,7 @@ import { STEM_EL, WUXING_HEX, luckyAnimals } from '../astro';
 import { t } from '../i18n';
 import { gz, animalName, dayMasterName } from './labels.js';
 import { Stars } from './Stars.jsx';
-import { Pillars, WuxingBars } from './Wuxing.jsx';
+import { Pillars, WuxingRadar } from './Wuxing.jsx';
 
 // 生肖: today's relation to the year branch, 補運 colour, 八字 五行 and the almanac.
 export function ZodiacTab({ profile: p, day }) {
@@ -62,7 +62,7 @@ export function ZodiacTab({ profile: p, day }) {
           <div class="label">{Z.baziLabel}</div>
           <h2 style="margin-top:2px">{Z.baziTitle(dayMasterName(w), me)}</h2>
           <Pillars wuxing={w} />
-          <WuxingBars wuxing={w} />
+          <WuxingRadar wuxing={w} />
           <p class="why" style="margin-top:10px">{Z.wxNote(t.wuxing[lucky], w.pillars.length < 4)}</p>
         </div>
 
