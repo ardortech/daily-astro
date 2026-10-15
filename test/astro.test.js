@@ -96,6 +96,32 @@ test('dailySky row for the Taipei day', () => {
   // Moon enters Sagittarius at ~08:59 Taipei time.
   assert.match(row.moon_sign_change_at, /^2026-10-14T00:5\d/);
   assert.equal(dailySky('2026-10-13').moon_sign_change_at, null);
+
+  // Stage 2: extended fields
+  assert.equal(row.sun_sign, LIB);
+  assert.ok(row.sun_lon >= 180 && row.sun_lon < 210);
+  assert.ok(row.moon_illum >= 0 && row.moon_illum <= 1);
+  assert.equal(typeof row.moon_waxing, 'boolean');
+  for (const p of ['mercury', 'venus', 'mars']) {
+    assert.ok(row[`${p}_sign`] >= 0 && row[`${p}_sign`] <= 11, `${p}_sign`);
+    assert.ok(row[`${p}_lon`] >= 0 && row[`${p}_lon`] < 360, `${p}_lon`);
+    assert.equal(typeof row[`${p}_retro`], 'boolean', `${p}_retro`);
+  }
+  // Almanac fields
+  assert.ok(row.day_stem >= 0 && row.day_stem <= 9);
+  assert.ok(row.day_branch >= 0 && row.day_branch <= 11);
+  assert.ok(row.jianchu >= 0 && row.jianchu <= 11);
+  assert.ok(row.yi.length > 0);
+  assert.ok(row.ji.length > 0);
+  assert.ok(row.good_hours.length > 0);
+});
+
+test('dailySky VOC window spans sign ingress days', () => {
+  const row = dailySky('2026-10-16');
+  assert.ok(row.moon_sign_change_at);
+  assert.ok(row.voc_start);
+  assert.ok(row.voc_end);
+  assert.ok(new Date(row.voc_start) < new Date(row.voc_end));
 });
 
 test('sun sign boundaries', () => {

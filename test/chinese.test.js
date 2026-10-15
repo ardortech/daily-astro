@@ -1,7 +1,7 @@
 // 農曆 conversion, 生肖 at 立春, 八字 pillars and the 生肖 relation of the day.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { solarToLunar, lunarToSolar, lunarMonths, baziFor, almanac, relation, goodHours, hourBranch, zodiacReading } from '../src/astro/chinese.js';
+import { solarToLunar, lunarToSolar, lunarMonths, baziFor, almanac, relation, goodHours, hourBranch, zodiacReading, tenGod, dayTenGod } from '../src/astro/chinese.js';
 
 const STEMS = '甲乙丙丁戊己庚辛壬癸', BRANCHES = '子丑寅卯辰巳午未申酉戌亥';
 const gz = ([s, b]) => STEMS[s] + BRANCHES[b];
@@ -71,7 +71,7 @@ test('relation of the day branch to the year branch', () => {
   }
 });
 
-test('almanac for 2026-10-13: 庚申日, 開日, 財神正東', () => {
+test('almanac for 2026-10-13: 庚申日, 開日, 財神正東, real 宜忌', () => {
   const a = almanac('2026-10-13');
   assert.equal(gz(a.day), '庚申');
   assert.equal(gz(a.year), '丙午');
@@ -83,6 +83,57 @@ test('almanac for 2026-10-13: 庚申日, 開日, 財神正東', () => {
   assert.equal(hourBranch(23), 0);
   assert.equal(hourBranch(9), 5);
   assert.equal(goodHours(8).length, 6);
+  // Real 宜/忌 from lunar-javascript, Traditional Chinese
+  assert.ok(a.yi.length > 0, '宜 should have entries');
+  assert.ok(a.ji.length > 0, '忌 should have entries');
+  assert.ok(a.yi.includes('嫁娶'), '2026-10-13 宜 嫁娶');
+  assert.ok(a.yi.includes('開市'), '2026-10-13 宜 開市');
+  assert.ok(a.ji.includes('安床'), '2026-10-13 忌 安床');
+  // All strings should be Traditional Chinese (no simplified 开动纳 etc.)
+  for (const w of [...a.yi, ...a.ji]) assert.ok(!/[开动纳启钻进补种医谢]/.test(w), `${w} contains SC`);
+});
+
+test('almanac spot-check: 2026-10-14 辛酉 閉日', () => {
+  const a = almanac('2026-10-14');
+  assert.equal(gz(a.day), '辛酉');
+  assert.equal(a.jianchu, 11); // 閉
+  assert.ok(a.yi.includes('嫁娶'));
+  assert.ok(a.ji.includes('開光'));
+  assert.ok(a.ji.includes('栽種'));
+  for (const w of [...a.yi, ...a.ji]) assert.ok(!/[开动纳启钻进补种医谢]/.test(w), `${w} SC`);
+});
+
+test('十神 (ten gods) calculation', () => {
+  // 甲(0) vs 甲(0): same element, same polarity → 比肩 (0)
+  assert.equal(tenGod(0, 0), 0);
+  // 甲(0) vs 乙(1): same element, diff polarity → 劫財 (1)
+  assert.equal(tenGod(0, 1), 1);
+  // 甲(0) vs 丙(2): 木生火, same polarity → 食神 (2)
+  assert.equal(tenGod(0, 2), 2);
+  // 甲(0) vs 丁(3): 木生火, diff polarity → 傷官 (3)
+  assert.equal(tenGod(0, 3), 3);
+  // 甲(0) vs 戊(4): 木克土, same polarity → 偏財 (4)
+  assert.equal(tenGod(0, 4), 4);
+  // 甲(0) vs 己(5): 木克土, diff polarity → 正財 (5)
+  assert.equal(tenGod(0, 5), 5);
+  // 甲(0) vs 庚(6): 金克木, same polarity → 七殺 (6)
+  assert.equal(tenGod(0, 6), 6);
+  // 甲(0) vs 辛(7): 金克木, diff polarity → 正官 (7)
+  assert.equal(tenGod(0, 7), 7);
+  // 甲(0) vs 壬(8): 水生木, same polarity → 偏印 (8)
+  assert.equal(tenGod(0, 8), 8);
+  // 甲(0) vs 癸(9): 水生木, diff polarity → 正印 (9)
+  assert.equal(tenGod(0, 9), 9);
+  // dayTenGod convenience wrapper
+  assert.equal(dayTenGod(8, 6), tenGod(8, 6)); // 壬 vs 庚
+});
+
+test('almanac spot-check: 2026-01-01 閉日', () => {
+  const a = almanac('2026-01-01');
+  assert.ok(a.yi.includes('入宅'));
+  assert.ok(a.ji.includes('嫁娶'));
+  assert.ok(a.ji.includes('開市'));
+  for (const w of [...a.yi, ...a.ji]) assert.ok(!/[开动纳启钻进补种医谢]/.test(w), `${w} SC`);
 });
 
 test('zodiac reading: +1 整體 when the day stem feeds the 補運 element; 太歲', () => {

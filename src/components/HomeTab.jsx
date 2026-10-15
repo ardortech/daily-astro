@@ -4,13 +4,14 @@ import { t } from '../i18n';
 import { animalName } from './labels.js';
 import { Stars } from './Stars.jsx';
 import { ZodiacImg } from './ZodiacImg.jsx';
+import { AskEntry } from './AskTab.jsx';
 
 // 首頁: today's 星座 + 生肖 at a glance, lucky items, and what's next.
 export function HomeTab({ profile: p, day, follows, go }) {
   const H = t.home, r = day.reading, z = day.zodiac, a = day.alm;
   const [theme, advice] = t.houses[r.house];
   const [relName] = t.relations[z.rel];
-  const [yi, ji] = t.almanacYiJi[a.jianchu];
+  const yi = a.yi, ji = a.ji;
   const lucky = p.wuxing.luckyElement;
   const next = a.goodHours.find(h => h >= day.hour) ?? a.goodHours[0];
   const latest = FEED.find(f => follows[f.a] && !f.upcoming && f.h < 48);
@@ -44,6 +45,7 @@ export function HomeTab({ profile: p, day, follows, go }) {
           <div class="more" style="color:var(--cinnabar)">{H.zodiacMore}</div>
         </button>
       </div>
+      <AskEntry go={go} />
       <div class="trio-lucky">
         <div class="lk">
           <div class="label">{H.luckyColor}</div>
@@ -65,6 +67,14 @@ export function HomeTab({ profile: p, day, follows, go }) {
           <div class="why">{H.caiWhy}</div>
         </div>
       </div>
+      {day.personal && (
+        <div class="card" style="margin-top:10px;padding:8px 18px">
+          <div class="today-row"><span class="label">{H.tenGodLabel}</span><span><b>{t.tenGods[day.personal.tenGod]}</b> {t.tenGodHints[day.personal.tenGod]}</span></div>
+          {day.personal.moonLinks.length > 0 && (
+            <div class="today-row"><span class="label">{H.moonNatal}</span><span>{day.personal.moonLinks.map(l => `${t.bodies[l.body === 'moon' ? 'moon' : 'rising']}${t.aspects[l.aspect][0]}`).join('、')}</span></div>
+          )}
+        </div>
+      )}
       <div class="card" style="margin-top:10px;padding:6px 18px">
         <div class="today-row"><span class="label">{H.todayYi}</span><span>{yi.join('・')}</span><span /></div>
         <div class="today-row"><span class="label">{H.nextHour}</span><span>{t.hourRange(next)}</span><span /></div>

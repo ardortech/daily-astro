@@ -9,7 +9,7 @@ import { ZodiacImg } from './ZodiacImg.jsx';
 export function ZodiacTab({ profile: p, day }) {
   const Z = t.zodiac, a = day.alm, z = day.zodiac, w = p.wuxing;
   const [relName, focus, watch] = t.relations[z.rel];
-  const [yi, ji] = t.almanacYiJi[a.jianchu];
+  const yi = a.yi, ji = a.ji;
   const dayEl = t.wuxing[STEM_EL[a.day[0]]];
   const lucky = w.luckyElement;
   const me = animalName(p);

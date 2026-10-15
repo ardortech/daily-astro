@@ -36,6 +36,43 @@ test('daily-sky loads and runs in plain Node without ESM syntax detection', () =
   assert.equal(JSON.parse(sent).date, body.date);
 });
 
+// daily-readings: verify it loads, config is present, and template fallback works.
+const readingsRunner = `
+  globalThis.fetch = async (url, init) => {
+    globalThis.calls = (globalThis.calls ?? []).concat([[init?.method, String(url), init?.body]]);
+    return new Response('[]', { status: 201, headers: { 'content-type': 'application/json' } });
+  };
+  process.env.VITE_SUPABASE_URL = 'https://example.supabase.co';
+  process.env.SUPABASE_SECRET_KEY = 'sb_secret_test';
+  process.env.ANTHROPIC_API_KEY = '';
+  const fn = await import('./netlify/functions/daily-readings.mjs');
+  console.log(JSON.stringify({ schedule: fn.config.schedule, hasDefault: typeof fn.default === 'function' }));
+`;
+
+test('daily-readings loads in plain Node', () => {
+  const out = execFileSync(process.execPath, [...nodeFlags, '--input-type=module', '-e', readingsRunner], { encoding: 'utf8' });
+  const { schedule, hasDefault } = JSON.parse(out.trim().split('\n').pop());
+  assert.equal(schedule, '5 16 * * *');
+  assert.equal(hasDefault, true);
+});
+
+// ask.mjs: verify it loads and has the right path.
+const askRunner = `
+  globalThis.fetch = async () => new Response('{}', { status: 200, headers: { 'content-type': 'application/json' } });
+  process.env.VITE_SUPABASE_URL = 'https://example.supabase.co';
+  process.env.SUPABASE_SECRET_KEY = 'sb_secret_test';
+  process.env.ANTHROPIC_API_KEY = 'test_key';
+  const fn = await import('./netlify/functions/ask.mjs');
+  console.log(JSON.stringify({ path: fn.config.path, hasDefault: typeof fn.default === 'function' }));
+`;
+
+test('ask.mjs loads in plain Node with correct path', () => {
+  const out = execFileSync(process.execPath, [...nodeFlags, '--input-type=module', '-e', askRunner], { encoding: 'utf8' });
+  const { path, hasDefault } = JSON.parse(out.trim().split('\n').pop());
+  assert.equal(path, '/api/ask');
+  assert.equal(hasDefault, true);
+});
+
 test('netlify.toml ships the astronomy-engine files the Node entry requires', () => {
   // nft (Netlify's packager for v2 functions) can't trace the require in engine.node.cjs
   // once it is transpiled, so the files are listed in included_files.

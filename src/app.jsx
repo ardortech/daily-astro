@@ -13,7 +13,8 @@ import { BirthForm } from './components/BirthForm.jsx';
 import { Reveal } from './components/Reveal.jsx';
 import { TabBar, TABS } from './components/TabBar.jsx';
 import { Toast } from './components/Toast.jsx';
-import { InstallGuide, InstallWelcome, needsInstall } from './components/InstallGuide.jsx';
+import { InstallGuide, InstallWelcome, GuideContent, needsInstall, PreviewBadge } from './components/InstallGuide.jsx';
+import { AskTab, AskEntry } from './components/AskTab.jsx';
 
 // Recompute everything derived from the birth inputs, so caches and rows written by
 // older versions (no 生肖 / 五行, older engines) pick up the current code.
@@ -40,12 +41,14 @@ export function App() {
 
   const day = useMemo(() => today(profile), [view, profile]);
 
+  const [askQ, setAskQ] = useState(null);
+
   const toast = msg => {
     setToastMsg(msg);
     clearTimeout(toastTimer.current);
     toastTimer.current = setTimeout(() => setToastMsg(''), 2200);
   };
-  const show = next => { setView(next); window.scrollTo(0, 0); };
+  const show = (next, q) => { if (next === 'ask') setAskQ(q || null); setView(next); window.scrollTo(0, 0); };
   // pushTime → push_time, daily → daily_enabled, zodiacDaily → zodiac_daily_enabled.
   const setPrefs = p => {
     const changed = p.pushTime !== prefs.pushTime || p.daily !== prefs.daily || p.zodiacDaily !== prefs.zodiacDaily;
@@ -88,13 +91,15 @@ export function App() {
     : <><InstallGuide toast={toast} /><BirthForm first initial={SAMPLE_BIRTH} onSave={saveProfile} /></>;
   else if (view === 'reveal') body = <Reveal profile={profile} pushTime={prefs.pushTime} onDone={() => show('home')} />;
   else if (view === 'edit') body = <BirthForm initial={profile} onSave={saveProfile} />;
+  else if (view === 'ask') body = <AskTab profile={profile} initialQ={askQ} onBack={() => show('home')} />;
+  else if (view === 'install-guide') body = <section><div class="card" style="margin-top:14px"><h2>{t.install.title}</h2><GuideContent toast={toast} /><div style="margin-top:16px;text-align:center"><button class="chip-btn" type="button" onClick={() => show('settings')}>{t.app.back}</button></div></div></section>;
   else body = <>
     <InstallGuide toast={toast} />
     {view === 'home' && <HomeTab profile={profile} day={day} follows={follows} go={show} />}
     {view === 'astro' && <AstroTab profile={profile} day={day} follows={follows} />}
     {view === 'zodiac' && <ZodiacTab profile={profile} day={day} />}
     {view === 'feed' && <FeedTab follows={follows} filter={filter} setFilter={setFilter} />}
-    {view === 'settings' && <SettingsTab profile={profile} day={day} prefs={prefs} setPrefs={setPrefs} follows={follows} setFollow={setFollow} onEdit={() => show('edit')} toast={toast} />}
+    {view === 'settings' && <SettingsTab profile={profile} day={day} prefs={prefs} setPrefs={setPrefs} follows={follows} setFollow={setFollow} onEdit={() => show('edit')} onShowGuide={() => show('install-guide')} toast={toast} />}
   </>;
 
   return (
@@ -103,9 +108,9 @@ export function App() {
         <header class="top">
           <div class="brand"><img class="logo" src="/favicon.svg" alt="" width="30" height="30" /><span>{t.app.name}<small>{t.app.tagline}</small></span></div>
           {view === 'edit' && !firstRun && <button class="chip-btn" type="button" onClick={() => show('settings')}>{t.app.cancel}</button>}
+          <PreviewBadge />
         </header>
         {body}
-        {!firstRun && <p class="sample">{t.app.sampleNote}</p>}
       </div>
       {tabbed && <TabBar tab={view} onSelect={show} badge={newCount(follows)} />}
       <Toast msg={toastMsg} />

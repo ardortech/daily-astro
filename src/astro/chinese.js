@@ -98,16 +98,33 @@ export function wuxingOf(pillars) {
 
 // ---- Today ----
 
-// Placeholder 宜/忌 index per 建除 value (prototype tables, wording in i18n almanacYiJi).
-// Phase 3 replaces them with the full almanac written nightly to daily_sky.
 // 財神 direction per day stem (i18n directions: 正東 東南 正南 西南 正西 西北 正北 東北),
 // 煞 direction per day branch (i18n shaDirections: 東 南 西 北).
 const CAI = [7, 7, 3, 3, 6, 6, 0, 0, 2, 2];
 const SHA = [1, 0, 3, 2, 1, 0, 3, 2, 1, 0, 3, 2];
 const JIANCHU = '建除满平定执破危成收开闭';
 
+// lunar-javascript returns Simplified Chinese; map to Traditional for zh-TW.
+const SC2TC = { 开: '開', 动: '動', 纳: '納', 嫁娶: '嫁娶', 启: '啟', 钻: '鑽',
+  进: '進', 补: '補', 修坟: '修墳', 修门: '修門', 安门: '安門', 开仓: '開倉',
+  开光: '開光', 开厕: '開廁', 开市: '開市', 开柱眼: '開柱眼', 开池: '開池',
+  开渠: '開渠', 开生坟: '開生墳', 归宁: '歸寧', 归岫: '歸岫', 扫舍: '掃舍',
+  挂匾: '掛匾', 栽种: '栽種', 求医: '求醫', 谢土: '謝土', 造仓: '造倉',
+  造庙: '造廟', 造桥: '造橋', 造车器: '造車器', 针灸: '針灸', 问名: '問名',
+  订盟: '訂盟', 词讼: '詞訟', 诸事不宜: '諸事不宜', 馀事勿取: '餘事勿取',
+  结网: '結網', 经络: '經絡', 盖屋: '蓋屋', 竖柱: '豎柱', 筑堤: '築堤',
+  习艺: '習藝', 会亲友: '會親友', 入学: '入學', 入殓: '入殮',
+  出货财: '出貨財', 取渔: '取漁', 合寿木: '合壽木', 合帐: '合帳',
+  塑绘: '塑繪', 坏垣: '壞垣', 安机械: '安機械', 教牛马: '教牛馬',
+  斋醮: '齋醮', 断蚁: '斷蟻', 架马: '架馬', 修饰垣墙: '修飾垣牆',
+  牧养: '牧養', 畋猎: '畋獵', 置产: '置產', 行丧: '行喪',
+  雇佣: '雇傭', 平治道涂: '平治道塗', 动土: '動土', 纳婿: '納婿',
+  纳畜: '納畜', 纳财: '納財', 纳采: '納采', 补垣: '補垣',
+  启钻: '啟鑽', 进人口: '進人口', 无: '無' };
+const scToTc = s => SC2TC[s] || s;
+
 // The almanac for a civil date: { lunar, year: [s, b], month: [s, b], day: [s, b],
-// jianchu 0–11, chong (branch clashing with the day), sha, cai, goodHours [branch…] }.
+// jianchu 0–11, yi, ji, chong (branch clashing with the day), sha, cai, goodHours [branch…] }.
 export function almanac(dateStr) {
   const [y, m, d] = ymd(dateStr);
   const l = Solar.fromYmd(y, m, d).getLunar();
@@ -118,6 +135,8 @@ export function almanac(dateStr) {
     month: [l.getMonthGanIndexExact(), l.getMonthZhiIndexExact()],
     day: [ds, db],
     jianchu: JIANCHU.indexOf(l.getZhiXing()),
+    yi: l.getDayYi().map(scToTc),
+    ji: l.getDayJi().map(scToTc),
     chong: (db + 6) % 12,
     sha: SHA[db],
     cai: CAI[ds],
@@ -152,6 +171,19 @@ export function relation(d, u) {
 
 // Animals in 六合 or 三合 with the day: today's 貴人生肖.
 export const luckyAnimals = db => [...Array(12).keys()].filter(u => relation(db, u) <= 1);
+
+// 十神: the relationship of another stem to the day master.
+// 0 比肩 1 劫財 2 食神 3 傷官 4 偏財 5 正財 6 七殺 7 正官 8 偏印 9 正印
+export function tenGod(dayMasterStem, otherStem) {
+  const dmEl = STEM_EL[dayMasterStem];
+  const otherEl = STEM_EL[otherStem];
+  const samePol = (dayMasterStem % 2) === (otherStem % 2);
+  const rel = (otherEl - dmEl + 5) % 5; // 0 same, 1 I generate, 2 wealth, 3 kills me, 4 generates me
+  return rel * 2 + (samePol ? 0 : 1);
+}
+
+// Today's 十神 of the day stem relative to the user's day master.
+export function dayTenGod(dayMasterStem, dayStem) { return tenGod(dayMasterStem, dayStem); }
 
 // 生肖 reading for a profile on a day: { rel, tone, scores, boost, taisui }.
 // boost: the day stem's element is the person's 補運 element (+1 整體 star).
