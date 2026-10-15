@@ -4,7 +4,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@supabase/supabase-js';
 import { almanac, relation, goodHours, STEM_EL, BRANCH_EL, luckyAnimals, tenGod, zodiacReading, RELATION_TONE } from '../../src/astro/chinese.js';
-import { sky, signOf, moonIngress, dayBounds, hash, reading, personalColor, elementOf, phaseIndex } from '../../src/astro/index.js';
+import { signOf, phaseIndex } from '../../src/astro/index.js';
 import { julianDay, moonLon, sunLon, planetLon, isRetrograde } from '../../src/astro/math.js';
 
 const HOUR_QUOTA = 10;
@@ -312,10 +312,21 @@ export default async (req) => {
   todayNow.setUTCHours(todayNow.getUTCHours() + 8);
   const todayStr = todayNow.toISOString().slice(0, 10);
 
-  const { prompt, directAnswer, days } = buildGroundedPrompt(question, profile, todayStr, lang);
+  let prompt, directAnswer, days, cls;
+  try {
+    cls = classifyQuestion(question);
+    const result = buildGroundedPrompt(question, profile, todayStr, lang);
+    prompt = result.prompt;
+    directAnswer = result.directAnswer;
+    days = result.days;
+  } catch (e) {
+    console.error('ask: prompt build error', JSON.stringify({ type: cls?.type, error: e.message }));
+    return json({ answer: lang === 'en' ? 'Sorry, something went wrong. Please try again.' : '抱歉，出了點問題，請稍後再試。', remaining: HOUR_QUOTA - count, days: null });
+  }
 
   let answer, tokensIn = 0, tokensOut = 0;
   if (directAnswer) {
+    console.log('ask: direct', JSON.stringify({ type: cls.type }));
     answer = directAnswer;
   } else {
     try {
@@ -325,20 +336,25 @@ export default async (req) => {
         max_tokens: 400,
         messages: [{ role: 'user', content: prompt }],
       });
-      answer = resp.content[0].text;
-      tokensIn = resp.usage.input_tokens;
-      tokensOut = resp.usage.output_tokens;
+      const textBlock = resp.content?.find(b => b.type === 'text');
+      answer = textBlock?.text ?? '';
+      tokensIn = resp.usage?.input_tokens ?? 0;
+      tokensOut = resp.usage?.output_tokens ?? 0;
+      if (!answer) {
+        console.error('ask: empty AI response', JSON.stringify({ type: cls.type, stop: resp.stop_reason, blocks: resp.content?.length }));
+      }
     } catch (e) {
-      console.error('ask: AI error', e.message);
+      console.error('ask: AI error', JSON.stringify({ type: cls.type, error: e.message }));
       return json({ answer: lang === 'en' ? 'Sorry, something went wrong. Please try again.' : '抱歉，出了點問題，請稍後再試。', remaining: HOUR_QUOTA - count, days: null });
     }
   }
 
   if (!answer || !answer.trim()) {
+    console.error('ask: fallback shown', JSON.stringify({ type: cls.type, reason: 'empty_answer' }));
     return json({ answer: lang === 'en' ? "I couldn't form a clear answer. Try rephrasing?" : '小吉想了想，但還沒有想出好的答案，換個方式問問看？', remaining: HOUR_QUOTA - count, days: null });
   }
 
-  // Log only on success
+  console.log('ask: ok', JSON.stringify({ type: cls.type, tokensIn, tokensOut }));
   await supabase.from('ask_log').insert({ user_id: user.id, asked_at: new Date().toISOString(), tokens_in: tokensIn, tokens_out: tokensOut });
 
   // Compute reset time for the next quota boundary
