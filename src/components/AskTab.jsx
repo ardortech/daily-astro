@@ -3,6 +3,13 @@ import { supabase } from '../lib/supabase.js';
 import { t } from '../i18n';
 
 const SUGGEST = ['今天感情運如何？', '這週工作要注意什麼？', '下個月哪天適合搬家？', '明天面試穿什麼顏色？', '水星逆行對我有影響嗎？'];
+
+function thinkingText(q) {
+  if (/顏色|穿|色|配件/.test(q)) return t.ask.thinkingColor;
+  if (/搬家|入宅|簽約|合約|結婚|嫁娶|出國|旅行|面試|求職|動土|裝修|安床|開工|開市|開業/.test(q)) return t.ask.thinkingDate;
+  return t.ask.thinkingReading;
+}
+
 const STEMS = '甲乙丙丁戊己庚辛壬癸';
 const BRANCHES = '子丑寅卯辰巳午未申酉戌亥';
 const WEEKDAYS = '日一二三四五六';
@@ -39,7 +46,7 @@ export function AskTab({ profile, initialQ, onBack }) {
   const [messages, setMessages] = useState([]);
   const [remaining, setRemaining] = useState(10);
   const [resetAt, setResetAt] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(null);
   const [input, setInput] = useState('');
   const chatRef = useRef();
   const inputRef = useRef();
@@ -69,7 +76,7 @@ export function AskTab({ profile, initialQ, onBack }) {
     if (remaining <= 0) return;
 
     setMessages(prev => [...prev, { role: 'me', text: q }]);
-    setLoading(true);
+    setLoading(thinkingText(q));
     setInput('');
 
     try {
@@ -92,7 +99,7 @@ export function AskTab({ profile, initialQ, onBack }) {
         } else {
           setMessages(prev => [...prev, { role: 'ai', html: t.ask.error }]);
         }
-        setLoading(false);
+        setLoading(null);
         return;
       }
 
@@ -103,7 +110,7 @@ export function AskTab({ profile, initialQ, onBack }) {
     } catch {
       setMessages(prev => [...prev, { role: 'ai', html: t.ask.error }]);
     }
-    setLoading(false);
+    setLoading(null);
   };
 
   const onSubmit = e => { e.preventDefault(); send(input); };
@@ -133,7 +140,7 @@ export function AskTab({ profile, initialQ, onBack }) {
         {loading && (
           <div class="msg ai">
             <span class="who">{t.ask.who}</span>
-            <span class="typing"><i /><i /><i />　{t.ask.thinking}</span>
+            <span class="typing"><i /><i /><i />　{loading}</span>
           </div>
         )}
       </div>

@@ -368,3 +368,56 @@ test('prompt: unrelated → direct decline (other)', () => {
   assert.equal(r.type, 'other');
   assert.equal(r.direct, 'other');
 });
+
+// ---- extractAnswer: robust parsing of model replies ----
+
+function testExtract(raw) {
+  const script = `
+    function extractAnswer(raw) {
+      if (!raw) return '';
+      let text = raw.replace(/^\\\`\\\`\\\`(?:json)?\\s*/i, '').replace(/\\s*\\\`\\\`\\\`\\s*$/, '');
+      const jsonMatch = text.match(/\\{[\\s\\S]*\\}/);
+      if (jsonMatch) {
+        try {
+          const obj = JSON.parse(jsonMatch[0]);
+          if (typeof obj.answer === 'string' && obj.answer.trim()) return obj.answer.trim();
+        } catch {}
+      }
+      text = text.trim();
+      return text || '';
+    }
+    console.log(JSON.stringify({ result: extractAnswer(${JSON.stringify(raw)}) }));
+  `;
+  const out = execFileSync(process.execPath, [...nodeFlags, '--input-type=module', '-e', script], { encoding: 'utf8' });
+  return JSON.parse(out.trim().split('\n').pop()).result;
+}
+
+test('extractAnswer: fenced JSON with answer field', () => {
+  const raw = '```json\n{"answer": "今天感情運不錯，月亮在你的第五宮。"}\n```';
+  assert.equal(testExtract(raw), '今天感情運不錯，月亮在你的第五宮。');
+});
+
+test('extractAnswer: bare JSON object', () => {
+  const raw = '{"answer": "水星逆行期間要注意溝通。"}';
+  assert.equal(testExtract(raw), '水星逆行期間要注意溝通。');
+});
+
+test('extractAnswer: JSON with extra text before/after', () => {
+  const raw = 'Here is my answer:\n{"answer": "穿紅色會帶來好運。"}\nHope this helps!';
+  assert.equal(testExtract(raw), '穿紅色會帶來好運。');
+});
+
+test('extractAnswer: plain text (no JSON)', () => {
+  const raw = '今天月亮在雙子座，適合社交和溝通。';
+  assert.equal(testExtract(raw), '今天月亮在雙子座，適合社交和溝通。');
+});
+
+test('extractAnswer: empty string', () => {
+  assert.equal(testExtract(''), '');
+  assert.equal(testExtract(null), '');
+});
+
+test('extractAnswer: invalid JSON falls back to plain text', () => {
+  const raw = '```json\n{answer: broken}\n```';
+  assert.ok(testExtract(raw).length > 0, 'should return something');
+});

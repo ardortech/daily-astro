@@ -274,6 +274,20 @@ ${lines.join('\n')}
     : "That's outside my expertise. I can help with horoscopes, picking dates, lucky colours, chart readings, or zodiac compatibility." };
 }
 
+function extractAnswer(raw) {
+  if (!raw) return '';
+  let text = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '');
+  const jsonMatch = text.match(/\{[\s\S]*\}/);
+  if (jsonMatch) {
+    try {
+      const obj = JSON.parse(jsonMatch[0]);
+      if (typeof obj.answer === 'string' && obj.answer.trim()) return obj.answer.trim();
+    } catch { /* not valid JSON, fall through */ }
+  }
+  text = text.trim();
+  return text || '';
+}
+
 export default async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: corsHeaders() });
   if (req.method !== 'POST') return new Response('method not allowed', { status: 405, headers: corsHeaders() });
@@ -335,23 +349,44 @@ export default async (req) => {
         model: 'claude-haiku-5-5',
         max_tokens: 400,
         messages: [{ role: 'user', content: prompt }],
+        tools: [{
+          name: 'answer',
+          description: 'Return the horoscope answer to the user',
+          input_schema: {
+            type: 'object',
+            properties: { answer: { type: 'string', description: 'The answer text' } },
+            required: ['answer'],
+          },
+        }],
+        tool_choice: { type: 'tool', name: 'answer' },
       });
-      const textBlock = resp.content?.find(b => b.type === 'text');
-      answer = textBlock?.text ?? '';
       tokensIn = resp.usage?.input_tokens ?? 0;
       tokensOut = resp.usage?.output_tokens ?? 0;
-      if (!answer) {
-        console.error('ask: empty AI response', JSON.stringify({ type: cls.type, stop: resp.stop_reason, blocks: resp.content?.length }));
+
+      const toolBlock = resp.content?.find(b => b.type === 'tool_use');
+      if (toolBlock?.input?.answer) {
+        answer = toolBlock.input.answer;
+      } else {
+        const textBlock = resp.content?.find(b => b.type === 'text');
+        const raw = textBlock?.text ?? '';
+        answer = extractAnswer(raw);
+        if (!answer) {
+          console.error('ask: parse fail', JSON.stringify({
+            type: cls.type, stop: resp.stop_reason,
+            blocks: resp.content?.length,
+            raw: raw.slice(0, 200),
+          }));
+        }
       }
     } catch (e) {
-      console.error('ask: AI error', JSON.stringify({ type: cls.type, error: e.message }));
-      return json({ answer: lang === 'en' ? 'Sorry, something went wrong. Please try again.' : '抱歉，出了點問題，請稍後再試。', remaining: HOUR_QUOTA - count, days: null });
+      console.error('ask: AI error', JSON.stringify({ type: cls.type, status: e.status, error: e.message }));
+      return json({ answer: lang === 'en' ? 'Sorry, something went wrong. Please try again.' : '抱歉，出了點問題，請稍後再試。', type: cls.type, remaining: HOUR_QUOTA - count, days: null });
     }
   }
 
   if (!answer || !answer.trim()) {
     console.error('ask: fallback shown', JSON.stringify({ type: cls.type, reason: 'empty_answer' }));
-    return json({ answer: lang === 'en' ? "I couldn't form a clear answer. Try rephrasing?" : '小吉想了想，但還沒有想出好的答案，換個方式問問看？', remaining: HOUR_QUOTA - count, days: null });
+    return json({ answer: lang === 'en' ? "I couldn't form a clear answer. Try rephrasing?" : '小吉想了想，但還沒有想出好的答案，換個方式問問看？', type: cls.type, remaining: HOUR_QUOTA - count, days: null });
   }
 
   console.log('ask: ok', JSON.stringify({ type: cls.type, tokensIn, tokensOut }));
@@ -366,7 +401,7 @@ export default async (req) => {
     resetAt = new Date(oldest.getTime() + 60 * 60 * 1000).toISOString();
   }
 
-  return json({ answer, remaining, resetAt, days: days || null });
+  return json({ answer, type: cls.type, remaining, resetAt, days: days || null });
 };
 
 function corsHeaders() {
