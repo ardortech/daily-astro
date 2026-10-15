@@ -36,7 +36,7 @@ test('daily-sky loads and runs in plain Node without ESM syntax detection', () =
   assert.equal(JSON.parse(sent).date, body.date);
 });
 
-// daily-readings: verify it loads, config is present, and template fallback works.
+// daily-readings (submit): verify it loads and has the right schedule.
 const readingsRunner = `
   globalThis.fetch = async (url, init) => {
     globalThis.calls = (globalThis.calls ?? []).concat([[init?.method, String(url), init?.body]]);
@@ -54,6 +54,62 @@ test('daily-readings loads in plain Node', () => {
   const { schedule, hasDefault } = JSON.parse(out.trim().split('\n').pop());
   assert.equal(schedule, '5 16 * * *');
   assert.equal(hasDefault, true);
+});
+
+// daily-readings-collect: verify it loads and has the right schedule.
+const collectRunner = `
+  globalThis.fetch = async (url, init) => {
+    globalThis.calls = (globalThis.calls ?? []).concat([[init?.method, String(url), init?.body]]);
+    return new Response('[]', { status: 201, headers: { 'content-type': 'application/json' } });
+  };
+  process.env.VITE_SUPABASE_URL = 'https://example.supabase.co';
+  process.env.SUPABASE_SECRET_KEY = 'sb_secret_test';
+  process.env.ANTHROPIC_API_KEY = '';
+  const fn = await import('./netlify/functions/daily-readings-collect.mjs');
+  console.log(JSON.stringify({ schedule: fn.config.schedule, hasDefault: typeof fn.default === 'function' }));
+`;
+
+test('daily-readings-collect loads in plain Node', () => {
+  const out = execFileSync(process.execPath, [...nodeFlags, '--input-type=module', '-e', collectRunner], { encoding: 'utf8' });
+  const { schedule, hasDefault } = JSON.parse(out.trim().split('\n').pop());
+  assert.equal(schedule, '35 16 * * *');
+  assert.equal(hasDefault, true);
+});
+
+// Shared readings module: verify key generation and template output shape.
+const sharedRunner = `
+  process.env.VITE_SUPABASE_URL = 'https://example.supabase.co';
+  const { allKeys, keyId, parseKeyId, templateFor, parseToolReading, dailySky } = await import('./netlify/functions/_lib/readings.mjs');
+  const keys = allKeys();
+  const sky = dailySky('2026-10-16');
+  const first = keys[0];
+  const reading = templateFor(first, sky);
+  const kid = keyId(first);
+  const parsed = parseKeyId(kid);
+  const toolContent = [{ type: 'tool_use', id: 'x', name: 'reading', input: reading }];
+  const fromTool = parseToolReading(toolContent);
+  console.log(JSON.stringify({
+    totalKeys: keys.length,
+    kid, parsed,
+    hasHeadline: !!reading.headline, hasBody: !!reading.body, hasWatchOut: !!reading.watch_out,
+    scoresLen: reading.scores.length, hasChanged: !!reading.what_changed,
+    toolParsed: !!fromTool, toolHeadline: fromTool?.headline === reading.headline,
+  }));
+`;
+
+test('shared readings module: keys, templates and tool parsing', () => {
+  const out = execFileSync(process.execPath, [...nodeFlags, '--input-type=module', '-e', sharedRunner], { encoding: 'utf8' });
+  const r = JSON.parse(out.trim().split('\n').pop());
+  assert.equal(r.totalKeys, 336);
+  assert.equal(r.kid, 'zh:a:0:-1');
+  assert.deepStrictEqual(r.parsed, { kind: 'astro', lang: 'zh', sun: 0, rising: -1, zodiac: -1 });
+  assert.ok(r.hasHeadline);
+  assert.ok(r.hasBody);
+  assert.ok(r.hasWatchOut);
+  assert.equal(r.scoresLen, 4);
+  assert.ok(r.hasChanged);
+  assert.ok(r.toolParsed);
+  assert.ok(r.toolHeadline);
 });
 
 // ask.mjs: verify it loads and has the right path.
