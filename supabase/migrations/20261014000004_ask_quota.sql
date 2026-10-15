@@ -1,4 +1,4 @@
--- 問吉光: per-user daily quota and question log.
+-- 問小吉: per-user daily quota and question log.
 -- question_text is kept for 30 days, then a scheduled cleanup NULLs it.
 
 create table if not exists public.ask_log (

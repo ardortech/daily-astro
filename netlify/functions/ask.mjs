@@ -1,4 +1,4 @@
-// 問吉光: grounded AI assistant for horoscope, 生肖, date-picking, lucky colours,
+// 問小吉: grounded AI assistant for horoscope, 生肖, date-picking, lucky colours,
 // chart explainers and compatibility. Authenticates with the user's Supabase JWT,
 // enforces 10 questions per rolling 60 minutes.
 import Anthropic from '@anthropic-ai/sdk';
@@ -136,13 +136,13 @@ function buildGroundedPrompt(q, profile, today, lang) {
 
   if (cls.type === 'medical' || cls.type === 'legal' || cls.type === 'financial') {
     return { prompt: null, directAnswer: zhTW
-      ? '吉光無法提供醫療、法律或投資建議，建議諮詢專業人士。我最擅長幫你看運勢、挑好日子和選幸運色，想試試嗎？'
+      ? '小吉無法提供醫療、法律或投資建議，建議諮詢專業人士。我最擅長幫你看運勢、挑好日子和選幸運色，想試試嗎？'
       : "I can't advise on medical, legal, or financial matters — please consult a professional. I'm best at horoscopes, picking lucky dates and colours. Want to try?" };
   }
 
   if (cls.type === 'other') {
     return { prompt: null, directAnswer: zhTW
-      ? '這個問題超出吉光的範圍了。我可以幫你看今天的運勢、擇日、選幸運色、解讀星盤，或看生肖配對，換個方式問問看？'
+      ? '這個問題超出小吉的範圍了。我可以幫你看今天的運勢、擇日、選幸運色、解讀星盤，或看生肖配對，換個方式問問看？'
       : "That's outside my expertise. I can help with horoscopes, picking dates, lucky colours, chart readings, or zodiac compatibility. Want to try one of those?" };
   }
 
@@ -153,7 +153,7 @@ function buildGroundedPrompt(q, profile, today, lang) {
     const ctx = buildColorContext(q, profile, today);
     const dayLabel = ['今天', '明天', '後天'][ctx.n];
     const facts = `${dayLabel}（${ctx.dateStr}）：${STEMS[ctx.day[0]]}${BRANCHES[ctx.day[1]]}日，月亮在${SIGNS[ctx.mSign]}座（${EL_NAMES[ctx.moonEl]}象），${pf.me}的${RELATIONS[ctx.rel]}日。用戶五行最缺${ELEMENTS[ctx.lucky]}。`;
-    return { prompt: `你是「吉光」的星座運勢助手，用${tone}回答。溫暖實用，不恐嚇。
+    return { prompt: `你是「小吉」，吉光 App 的星座運勢助手，用${tone}回答。溫暖實用，不恐嚇。
 以下是計算好的天象事實，請據此建議${dayLabel}的穿搭顏色：
 ${facts}
 用戶問：${q}
@@ -170,7 +170,7 @@ ${facts}
         : `In the next ${span} days, there are no days that are both auspicious for "${act.name}" and don't clash with your zodiac sign. Try a wider range.` };
     }
     const daysText = days.map((d, i) => `${i + 1}. ${d.date} ${STEMS[d.day[0]]}${BRANCHES[d.day[1]]}日 ${d.why.join('、')} 分數${d.score}`).join('\n');
-    return { prompt: `你是「吉光」的擇日助手，用${tone}回答。溫暖實用，不恐嚇。
+    return { prompt: `你是「小吉」，吉光 App 的擇日助手，用${tone}回答。溫暖實用，不恐嚇。
 用戶問：${q}
 用戶是${pf.dmEl}${pf.me}，${pf.sun}${pf.rising ? `、${pf.rising}` : ''}。
 
@@ -196,7 +196,7 @@ ${daysText}
       const dayLabel = i === 0 ? '今天' : i === 1 ? '明天' : ds;
       dateRange.push(`${dayLabel}（${ds}）：月亮${SIGNS[ctx.mSign]}座第${house + 1}宮（${HOUSES[house]}），月日${ASPECTS[aspect]}，${PHASES[ctx.phaseIdx]}，${ANIMALS[profile.zodiac]}的${RELATIONS[rel]}日，十神${TEN_GODS[tg]}。${STEMS[a.day[0]]}${BRANCHES[a.day[1]]}日，宜${a.yi.slice(0, 3).join('、')}。`);
     }
-    return { prompt: `你是「吉光」的星座運勢助手，用${tone}回答。溫暖實用，不恐嚇。
+    return { prompt: `你是「小吉」，吉光 App 的星座運勢助手，用${tone}回答。溫暖實用，不恐嚇。
 用戶是${pf.dmEl}${pf.me}，${pf.sun}、${pf.moon}${pf.rising ? `、${pf.rising}` : ''}，五行最缺${pf.lucky}。
 
 ${dateRange.join('\n')}
@@ -216,7 +216,7 @@ ${dateRange.join('\n')}
     }
     const moonHouse = (ctx.mSign - (profile.rising ?? profile.sun) + 12) % 12;
     lines.push(`月亮在${SIGNS[ctx.mSign]}座第${moonHouse + 1}宮，${PHASES[ctx.phaseIdx]}`);
-    return { prompt: `你是「吉光」的星象助手，用${tone}回答。溫暖實用，不恐嚇。
+    return { prompt: `你是「小吉」，吉光 App 的星象助手，用${tone}回答。溫暖實用，不恐嚇。
 用戶是${pf.dmEl}${pf.me}，${pf.sun}、${pf.moon}${pf.rising ? `、${pf.rising}` : ''}。
 
 今天（${today}）的星象：
@@ -230,7 +230,7 @@ ${lines.join('\n')}
     const wx = profile.wuxing;
     const counts = wx?.counts ?? [0, 0, 0, 0, 0];
     const pillarText = wx?.pillars ? wx.pillars.map((p, i) => `${['年', '月', '日', '時'][i]}柱${STEMS[p[0]]}${BRANCHES[p[1]]}`).join('、') : '無資料';
-    return { prompt: `你是「吉光」的星盤解讀助手，用${tone}回答。溫暖實用，不恐嚇。
+    return { prompt: `你是「小吉」，吉光 App 的星盤解讀助手，用${tone}回答。溫暖實用，不恐嚇。
 用戶的資料：
 - ${pf.sun}、${pf.moon}${pf.rising ? `、${pf.rising}` : '（無出生時間，無上升星座）'}
 - 生肖：${pf.me}
@@ -259,7 +259,7 @@ ${lines.join('\n')}
       lines.push(`你的太陽${SIGNS[profile.sun]}座和${SIGNS[matchSign]}座的相位是${ASPECTS[asp]}。`);
     }
     if (!lines.length) lines.push('無法判斷要比對的對象，請告訴我對方的生肖或星座。');
-    return { prompt: `你是「吉光」的星座生肖配對助手，用${tone}回答。溫暖正面，不恐嚇，絕對不要說某段關係注定失敗。
+    return { prompt: `你是「小吉」，吉光 App 的星座生肖配對助手，用${tone}回答。溫暖正面，不恐嚇，絕對不要說某段關係注定失敗。
 用戶是${pf.dmEl}${pf.me}，${pf.sun}${pf.rising ? `、${pf.rising}` : ''}，五行最缺${pf.lucky}。
 
 計算結果：
@@ -270,7 +270,7 @@ ${lines.join('\n')}
   }
 
   return { prompt: null, directAnswer: zhTW
-    ? '這個問題超出吉光的範圍了。我可以幫你看今天的運勢、擇日、選幸運色、解讀星盤，或看生肖配對，換個方式問問看？'
+    ? '這個問題超出小吉的範圍了。我可以幫你看今天的運勢、擇日、選幸運色、解讀星盤，或看生肖配對，換個方式問問看？'
     : "That's outside my expertise. I can help with horoscopes, picking dates, lucky colours, chart readings, or zodiac compatibility." };
 }
 
@@ -335,7 +335,7 @@ export default async (req) => {
   }
 
   if (!answer || !answer.trim()) {
-    return json({ answer: lang === 'en' ? "I couldn't form a clear answer. Try rephrasing?" : '吉光想了想，但還沒有想出好的答案，換個方式問問看？', remaining: HOUR_QUOTA - count, days: null });
+    return json({ answer: lang === 'en' ? "I couldn't form a clear answer. Try rephrasing?" : '小吉想了想，但還沒有想出好的答案，換個方式問問看？', remaining: HOUR_QUOTA - count, days: null });
   }
 
   // Log only on success

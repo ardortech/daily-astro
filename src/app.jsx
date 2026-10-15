@@ -110,7 +110,6 @@ export function App() {
           <PreviewBadge />
         </header>
         {body}
-        {!firstRun && <p class="sample">{t.app.sampleNote}</p>}
       </div>
       {tabbed && <TabBar tab={view} onSelect={show} badge={newCount(follows)} />}
       <Toast msg={toastMsg} />

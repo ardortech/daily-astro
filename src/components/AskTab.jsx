@@ -115,7 +115,7 @@ export function AskTab({ profile, initialQ, onBack }) {
   return (
     <section role="tabpanel" class="ask-view">
       <div class="ask-head">
-        <button class="back" type="button" onClick={onBack}>← {t.tabs.home}</button>
+        <button class="back" type="button" onClick={onBack} aria-label={t.tabs.home}>← {t.tabs.home}</button>
         <span class="quota">{quotaText}</span>
       </div>
       <h1 style="font-size:24px;font-weight:900;margin-top:4px">{t.ask.title}</h1>
@@ -158,7 +158,7 @@ export function AskEntry({ go }) {
   return (
     <div class="ask-entry">
       <button class="ask-box" type="button" onClick={() => go('ask')}>
-        <span class="dot">吉</span>{t.ask.entryLabel}
+        <span class="dot">吉</span><span>{t.ask.entryLabel}</span>
       </button>
       <div class="chips">
         {SUGGEST.slice(0, 4).map(s => <button key={s} type="button" onClick={() => go('ask', s)}>{s}</button>)}

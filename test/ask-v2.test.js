@@ -1,4 +1,4 @@
-// 問吉光 v2: classifier coverage, hourly quota, and empty-answer handling.
+// 問小吉 v2: classifier coverage, hourly quota, and empty-answer handling.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
