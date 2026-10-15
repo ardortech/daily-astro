@@ -3,6 +3,7 @@ import { AUTHORS } from '../data/sample.js';
 import { t } from '../i18n';
 import { animalName, dayMasterName } from './labels.js';
 import { Switch } from './Switch.jsx';
+import { isStandalone } from '../lib/platform.js';
 
 // The daily push text: one 星座 line + one 生肖 line, following the two switches.
 // Phase 3 swaps in the cached readings; Phase 4 sends it.
@@ -16,7 +17,7 @@ export function pushPreview(p, day, prefs) {
 
 // 設定: saved birth details, push preview + switches, followed authors.
 // Phase 4 wires 開啟通知 to Notification.requestPermission() + PushManager.subscribe().
-export function SettingsTab({ profile: p, day, prefs, setPrefs, follows, setFollow, onEdit, toast }) {
+export function SettingsTab({ profile: p, day, prefs, setPrefs, follows, setFollow, onEdit, onShowGuide, toast }) {
   const S = t.settings;
   const pv = pushPreview(p, day, prefs);
   return (
@@ -31,6 +32,9 @@ export function SettingsTab({ profile: p, day, prefs, setPrefs, follows, setFoll
             {t.sign(t.signs[p.sun])}・{t.bodies.moon}{t.signs[p.moon]}{p.rising !== null ? `・${t.bodies.rising}${t.signs[p.rising]}` : ''}・{animalName(p)}・{S.meDayMaster(dayMasterName(p.wuxing))}
           </p>
           <button class="chip-btn" type="button" style="margin-top:12px" onClick={onEdit}>{S.edit}</button>
+          {!isStandalone() && onShowGuide && (
+            <button class="chip-btn" type="button" style="margin-top:8px" onClick={onShowGuide}>{t.install.settingsLink}</button>
+          )}
         </div>
 
         <div class="card">

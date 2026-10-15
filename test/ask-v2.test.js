@@ -114,15 +114,18 @@ function testClassifier(question, expectedType) {
       { k: ['安床'], name: '安床', yi: ['安床'], days: 14 },
     ];
     function classify(q) {
-      if (/顏色|穿|色|配件/.test(q)) return 'color';
+      if (/顏色|幸運色|穿什麼|穿|色|配件/.test(q)) return 'color';
       if (ACTS.find(a => a.k.some(k => q.includes(k)))) return 'date';
-      if (/水星|金星|火星|逆行|滿月|新月|日蝕|月蝕|星象/.test(q)) return 'transit';
-      if (/運勢|感情|愛情|工作|事業|財運|運氣|心情|適合睡|運如何|要注意/.test(q)) return 'reading';
-      if (/上升|月亮星座|太陽星座|日主|五行|八字|星盤|我的.*座|我缺/.test(q)) return 'chart';
-      if (/合嗎|配嗎|合不合|速配|跟.*座|跟.*屬|配對|合得來/.test(q)) return 'compatibility';
+      if (/擇日|好日子|黃道吉日/.test(q)) return 'date';
+      if (/水逆|金逆|火逆|水星|金星|火星|逆行|滿月|新月|日蝕|月蝕|日食|月食|星象/.test(q)) return 'transit';
+      if (/運勢|感情|愛情|桃花|曖昧|復合|正緣|工作|事業|財運|偏財|加薪|升遷|運氣|心情|適合睡|運如何|要注意/.test(q)) return 'reading';
+      if (/犯太歲|安太歲|本命年/.test(q)) return 'reading';
+      if (/上升|月亮星座|太陽星座|日主|五行|八字|星盤|命盤|我的.*座|我缺/.test(q)) return 'chart';
+      if (/合嗎|配嗎|合不合|速配|跟.*座|跟.*屬|配對|合得來|沖/.test(q)) return 'compatibility';
       if (/醫|病|藥|症|健康|看診/.test(q)) return 'medical';
       if (/法律|律師|官司|訴訟/.test(q)) return 'legal';
       if (/投資|股票|基金|理財|賺錢/.test(q)) return 'financial';
+      if (/星座|生肖|運勢|農民曆|運|吉|凶|幸運|算命|占卜|紫微|流年/.test(q)) return 'reading';
       return 'other';
     }
     console.log(JSON.stringify({ type: classify(${JSON.stringify(question)}) }));
@@ -169,7 +172,26 @@ test('classifier: medical/legal/financial decline', () => {
 
 test('classifier: other (non-astro) decline', () => {
   assert.equal(testClassifier('幫我寫一首詩').type, 'other');
-  assert.equal(testClassifier('今天天氣怎麼樣').type, 'other');
+});
+
+test('classifier: 水逆 shorthand → transit', () => {
+  assert.equal(testClassifier('水逆對我有什麼影響').type, 'transit');
+});
+
+test('classifier: 桃花 → reading', () => {
+  assert.equal(testClassifier('最近桃花怎麼樣').type, 'reading');
+});
+
+test('classifier: 犯太歲 → reading', () => {
+  assert.equal(testClassifier('今年犯太歲嗎').type, 'reading');
+});
+
+test('classifier: 跟屬虎的合嗎 → compatibility', () => {
+  assert.equal(testClassifier('我跟屬虎的合嗎').type, 'compatibility');
+});
+
+test('classifier: email → decline (other)', () => {
+  assert.equal(testClassifier('幫我寫email').type, 'other');
 });
 
 test('HOUR_QUOTA is 10', () => {
@@ -236,16 +258,19 @@ function testPromptBuilder(question) {
       return { mSign, sSign: signOf(sLon), phase, phaseIdx: phaseIndex(phase), planets, jd };
     }
     function classifyQuestion(q) {
-      if (/顏色|穿|色|配件/.test(q)) return { type: 'color' };
+      if (/顏色|幸運色|穿什麼|穿|色|配件/.test(q)) return { type: 'color' };
       const act = ACTS.find(a => a.k.some(k => q.includes(k)));
       if (act) return { type: 'date', act };
-      if (/水星|金星|火星|逆行|滿月|新月|日蝕|月蝕|星象/.test(q)) return { type: 'transit' };
-      if (/運勢|感情|愛情|工作|事業|財運|運氣|心情|適合睡|運如何|要注意/.test(q)) return { type: 'reading' };
-      if (/上升|月亮星座|太陽星座|日主|五行|八字|星盤|我的.*座|我缺/.test(q)) return { type: 'chart' };
-      if (/合嗎|配嗎|合不合|速配|跟.*座|跟.*屬|配對|合得來/.test(q)) return { type: 'compatibility' };
+      if (/擇日|好日子|黃道吉日/.test(q)) return { type: 'date', act: ACTS[0] };
+      if (/水逆|金逆|火逆|水星|金星|火星|逆行|滿月|新月|日蝕|月蝕|日食|月食|星象/.test(q)) return { type: 'transit' };
+      if (/運勢|感情|愛情|桃花|曖昧|復合|正緣|工作|事業|財運|偏財|加薪|升遷|運氣|心情|適合睡|運如何|要注意/.test(q)) return { type: 'reading' };
+      if (/犯太歲|安太歲|本命年/.test(q)) return { type: 'reading' };
+      if (/上升|月亮星座|太陽星座|日主|五行|八字|星盤|命盤|我的.*座|我缺/.test(q)) return { type: 'chart' };
+      if (/合嗎|配嗎|合不合|速配|跟.*座|跟.*屬|配對|合得來|沖/.test(q)) return { type: 'compatibility' };
       if (/醫|病|藥|症|健康|看診/.test(q)) return { type: 'medical' };
       if (/法律|律師|官司|訴訟/.test(q)) return { type: 'legal' };
       if (/投資|股票|基金|理財|賺錢/.test(q)) return { type: 'financial' };
+      if (/星座|生肖|運勢|農民曆|運|吉|凶|幸運|算命|占卜|紫微|流年/.test(q)) return { type: 'reading' };
       return { type: 'other' };
     }
 

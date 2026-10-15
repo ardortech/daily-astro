@@ -246,17 +246,48 @@ input[disabled] { opacity: .5; }
 
 /* Install guide: on iPhone / in-app browsers the first screen until the app is installed; on
    Android a card above the form with 安裝吉光 / 稍後; never on desktop. */
-.install { background: var(--night); color: var(--night-fg); border-radius: 16px; padding: 14px 16px; margin-bottom: 14px; display: grid; grid-template-columns: 40px 1fr; gap: 12px; }
-.install .ic { width: 40px; height: 40px; border-radius: 10px; background: var(--gold); color: var(--surface); display: grid; place-items: center; }
-.install .ic svg { width: 22px; height: 22px; }
-.install b { font-family: var(--f-display); font-size: 15px; display: block; }
-.install p { margin: 2px 0 0; font-size: 13.5px; line-height: 1.55; }
-.install .sub { opacity: .7; font-size: 12px; margin-top: 4px; }
-.install .actions { grid-column: 1 / -1; display: flex; justify-content: flex-end; align-items: center; gap: 8px; }
-.install button { background: none; border: 1px solid var(--night-dim); color: var(--night-fg); border-radius: 999px; padding: 3px 14px; font-size: 13px; }
-.install button.go { background: var(--gold); border-color: var(--gold); color: var(--surface); font-weight: 700; padding: 5px 16px; }
-/* The Android card sits above the first-run form, outside .card. */
+.install { background: var(--night); color: var(--night-fg); border-radius: 16px; padding: 14px 16px; margin-bottom: 14px; }
+.install > b { font-family: var(--f-display); font-size: 15px; display: block; margin-bottom: 10px; }
 .install + section .card { margin-top: 0; }
+
+/* Install guide: segmented control */
+.ig-seg { display: flex; background: color-mix(in srgb, var(--night-fg) 12%, transparent); border-radius: 10px; padding: 2px; margin-bottom: 12px; }
+.ig-seg button { flex: 1; padding: 6px 0; border: none; border-radius: 8px; font-size: 13.5px; font-weight: 600; background: none; color: var(--night-fg); opacity: .6; cursor: pointer; }
+.ig-seg button.active { background: var(--night-fg); color: var(--night); opacity: 1; }
+
+/* Install guide: browser sections */
+.ig-browser { margin-bottom: 10px; }
+.ig-browser:last-child { margin-bottom: 0; }
+.ig-browser-title { font-size: 12.5px; font-weight: 700; opacity: .6; text-transform: uppercase; letter-spacing: .03em; margin-bottom: 4px; }
+
+/* Install guide: step list */
+.ig-steps { list-style: none; margin: 0; padding: 0; }
+.ig-step { display: flex; align-items: baseline; gap: 6px; font-size: 13.5px; line-height: 1.55; padding: 3px 0; }
+.ig-num { flex: none; width: 18px; height: 18px; border-radius: 50%; background: color-mix(in srgb, var(--night-fg) 15%, transparent); font-size: 11px; font-weight: 700; display: grid; place-items: center; position: relative; top: 2px; }
+.step-icon { flex: none; font-size: 15px; font-weight: 700; opacity: .8; }
+
+/* Install guide: Android install button */
+.ig-install-btn p { font-size: 13.5px; margin: 0 0 8px; line-height: 1.55; }
+.ig-install-btn .primary { width: 100%; }
+
+/* Install guide: in-app browser */
+.ig-inapp-title { font-family: var(--f-display); font-size: 15px; font-weight: 700; margin-bottom: 6px; }
+.ig-inapp p { font-size: 13.5px; line-height: 1.55; margin: 0 0 8px; }
+.ig-inapp .ig-steps { margin-bottom: 10px; }
+.ig-inapp .primary { width: 100%; }
+
+/* Install guide: dismiss button */
+.ig-dismiss { display: flex; justify-content: flex-end; margin-top: 8px; }
+.ig-dismiss button { background: none; border: 1px solid var(--night-dim); color: var(--night-fg); border-radius: 999px; padding: 3px 14px; font-size: 13px; cursor: pointer; }
+
+/* GuideContent inside .card (welcome screen) inherits .card text colour */
+.card .ig { color: inherit; }
+.card .ig-seg { background: color-mix(in srgb, currentColor 10%, transparent); }
+.card .ig-seg button { color: inherit; }
+.card .ig-seg button.active { background: var(--text); color: var(--surface); }
+.card .ig-num { background: color-mix(in srgb, currentColor 12%, transparent); }
+.card .ig-browser-title { color: inherit; }
+.card .ig-inapp-title { color: inherit; }
 
 /* `.result div` in the prototype also hits each cell's inner label/value divs; only the cell gets a background. */
 .result div div { background: none; padding: 0; border-radius: 0; }

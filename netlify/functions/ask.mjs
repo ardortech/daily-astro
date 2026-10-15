@@ -77,17 +77,49 @@ function findBestDays(act, profile, today, span) {
 
 // ---- Classifier ----
 
+const CLASSIFY_TYPES = ['reading', 'transit', 'chart', 'compatibility', 'date', 'color', 'medical', 'legal', 'financial', 'other'];
+
+async function classifyWithAI(question, apiKey) {
+  const anthropic = new Anthropic({ apiKey });
+  const resp = await anthropic.messages.create({
+    model: 'claude-haiku-5-5',
+    max_tokens: 50,
+    messages: [{ role: 'user', content: `Classify this zh-TW astrology question into one type.\nQuestion: "${question}"` }],
+    tools: [{
+      name: 'classify',
+      description: 'Classify the astrology question',
+      input_schema: {
+        type: 'object',
+        properties: {
+          type: {
+            type: 'string',
+            enum: CLASSIFY_TYPES,
+            description: 'reading=horoscope/fortune/luck/love/career/taisui. transit=planets/retrograde/eclipse/moon phase. chart=birth chart/signs/elements/bazi. compatibility=zodiac or sign matching. date=picking auspicious dates. color=lucky colors/outfit. medical/legal/financial=decline. other=clearly not astrology (coding, email, cooking).',
+          },
+        },
+        required: ['type'],
+      },
+    }],
+    tool_choice: { type: 'tool', name: 'classify' },
+  });
+  const toolBlock = resp.content?.find(b => b.type === 'tool_use');
+  return toolBlock?.input?.type || null;
+}
+
 function classifyQuestion(q) {
-  if (/顏色|穿|色|配件/.test(q)) return { type: 'color' };
+  if (/顏色|幸運色|穿什麼|穿|色|配件/.test(q)) return { type: 'color' };
   const act = ACTS.find(a => a.k.some(k => q.includes(k)));
   if (act) return { type: 'date', act };
-  if (/水星|金星|火星|逆行|滿月|新月|日蝕|月蝕|星象/.test(q)) return { type: 'transit' };
-  if (/運勢|感情|愛情|工作|事業|財運|運氣|心情|適合睡|運如何|要注意/.test(q)) return { type: 'reading' };
-  if (/上升|月亮星座|太陽星座|日主|五行|八字|星盤|我的.*座|我缺/.test(q)) return { type: 'chart' };
-  if (/合嗎|配嗎|合不合|速配|跟.*座|跟.*屬|配對|合得來/.test(q)) return { type: 'compatibility' };
+  if (/擇日|好日子|黃道吉日/.test(q)) return { type: 'date', act: ACTS[0] };
+  if (/水逆|金逆|火逆|水星|金星|火星|逆行|滿月|新月|日蝕|月蝕|日食|月食|星象/.test(q)) return { type: 'transit' };
+  if (/運勢|感情|愛情|桃花|曖昧|復合|正緣|工作|事業|財運|偏財|加薪|升遷|運氣|心情|適合睡|運如何|要注意/.test(q)) return { type: 'reading' };
+  if (/犯太歲|安太歲|本命年/.test(q)) return { type: 'reading' };
+  if (/上升|月亮星座|太陽星座|日主|五行|八字|星盤|命盤|我的.*座|我缺/.test(q)) return { type: 'chart' };
+  if (/合嗎|配嗎|合不合|速配|跟.*座|跟.*屬|配對|合得來|沖/.test(q)) return { type: 'compatibility' };
   if (/醫|病|藥|症|健康|看診/.test(q)) return { type: 'medical' };
   if (/法律|律師|官司|訴訟/.test(q)) return { type: 'legal' };
   if (/投資|股票|基金|理財|賺錢/.test(q)) return { type: 'financial' };
+  if (/星座|生肖|運勢|農民曆|運|吉|凶|幸運|算命|占卜|紫微|流年/.test(q)) return { type: 'reading' };
   return { type: 'other' };
 }
 
@@ -129,8 +161,7 @@ function buildColorContext(q, profile, today) {
   return { dateStr, day: a.day, mSign: ctx.mSign, moonEl: ctx.mSign % 4, lucky, rel, n };
 }
 
-function buildGroundedPrompt(q, profile, today, lang) {
-  const cls = classifyQuestion(q);
+function buildGroundedPrompt(q, cls, profile, today, lang) {
   const pf = profileFacts(profile);
   const zhTW = lang !== 'en';
 
@@ -328,8 +359,21 @@ export default async (req) => {
 
   let prompt, directAnswer, days, cls;
   try {
-    cls = classifyQuestion(question);
-    const result = buildGroundedPrompt(question, profile, todayStr, lang);
+    try {
+      const aiType = await classifyWithAI(question, apiKey);
+      if (aiType === 'date') {
+        const act = ACTS.find(a => a.k.some(k => question.includes(k)));
+        cls = act ? { type: 'date', act } : { type: 'reading' };
+      } else if (aiType && CLASSIFY_TYPES.includes(aiType)) {
+        cls = { type: aiType };
+      } else {
+        cls = classifyQuestion(question);
+      }
+    } catch (e) {
+      console.error('ask: classifier AI fail', JSON.stringify({ error: e.message }));
+      cls = classifyQuestion(question);
+    }
+    const result = buildGroundedPrompt(question, cls, profile, todayStr, lang);
     prompt = result.prompt;
     directAnswer = result.directAnswer;
     days = result.days;

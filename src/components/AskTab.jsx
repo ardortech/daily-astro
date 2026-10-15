@@ -5,8 +5,8 @@ import { t } from '../i18n';
 const SUGGEST = ['今天感情運如何？', '這週工作要注意什麼？', '下個月哪天適合搬家？', '明天面試穿什麼顏色？', '水星逆行對我有影響嗎？'];
 
 function thinkingText(q) {
-  if (/顏色|穿|色|配件/.test(q)) return t.ask.thinkingColor;
-  if (/搬家|入宅|簽約|合約|結婚|嫁娶|出國|旅行|面試|求職|動土|裝修|安床|開工|開市|開業/.test(q)) return t.ask.thinkingDate;
+  if (/顏色|幸運色|穿什麼|穿|色|配件/.test(q)) return t.ask.thinkingColor;
+  if (/搬家|入宅|簽約|合約|結婚|嫁娶|出國|旅行|面試|求職|動土|裝修|安床|開工|開市|開業|擇日|好日子|黃道吉日/.test(q)) return t.ask.thinkingDate;
   return t.ask.thinkingReading;
 }
 
