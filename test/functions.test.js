@@ -101,7 +101,7 @@ test('shared readings module: keys, templates and tool parsing', () => {
   const out = execFileSync(process.execPath, [...nodeFlags, '--input-type=module', '-e', sharedRunner], { encoding: 'utf8' });
   const r = JSON.parse(out.trim().split('\n').pop());
   assert.equal(r.totalKeys, 336);
-  assert.equal(r.kid, 'zh:a:0:-1');
+  assert.equal(r.kid, 'zh_astro_s0_rx');
   assert.deepStrictEqual(r.parsed, { kind: 'astro', lang: 'zh', sun: 0, rising: -1, zodiac: -1 });
   assert.ok(r.hasHeadline);
   assert.ok(r.hasBody);
@@ -110,6 +110,30 @@ test('shared readings module: keys, templates and tool parsing', () => {
   assert.ok(r.hasChanged);
   assert.ok(r.toolParsed);
   assert.ok(r.toolHeadline);
+});
+
+// custom_id: every ID matches the Batches API pattern, is unique, and round-trips.
+const customIdRunner = `
+  const { allKeys, keyId, parseKeyId } = await import('./netlify/functions/_lib/readings.mjs');
+  const keys = allKeys();
+  const pattern = /^[a-zA-Z0-9_-]{1,64}$/;
+  const ids = keys.map(k => keyId(k));
+  const badIds = ids.filter(id => !pattern.test(id));
+  const uniqueCount = new Set(ids).size;
+  const roundTripFails = keys.filter(k => {
+    const rt = parseKeyId(keyId(k));
+    return rt.kind !== k.kind || rt.lang !== k.lang || rt.sun !== k.sun || rt.rising !== k.rising || rt.zodiac !== k.zodiac;
+  });
+  console.log(JSON.stringify({ total: ids.length, bad: badIds, unique: uniqueCount, rtFails: roundTripFails.length }));
+`;
+
+test('custom_id: valid pattern, unique, round-trips for all 336 keys', () => {
+  const out = execFileSync(process.execPath, [...nodeFlags, '--input-type=module', '-e', customIdRunner], { encoding: 'utf8' });
+  const r = JSON.parse(out.trim().split('\n').pop());
+  assert.equal(r.total, 336);
+  assert.deepStrictEqual(r.bad, [], `IDs not matching Batches API pattern: ${r.bad.join(', ')}`);
+  assert.equal(r.unique, 336, 'custom_ids must be unique');
+  assert.equal(r.rtFails, 0, 'all keys must round-trip through keyId → parseKeyId');
 });
 
 // ask.mjs: verify it loads and has the right path.

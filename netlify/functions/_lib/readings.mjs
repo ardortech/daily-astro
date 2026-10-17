@@ -159,12 +159,24 @@ export function allKeys() {
   return keys;
 }
 
+// custom_id for the Batches API: must match ^[a-zA-Z0-9_-]{1,64}$
+// Astro:  zh_astro_s7_r4  (rising -1 → rx)
+// Zodiac: en_zodiac_z5
 export function keyId(k) {
-  return k.kind === 'astro' ? `${k.lang}:a:${k.sun}:${k.rising}` : `${k.lang}:z:${k.zodiac}`;
+  if (k.kind === 'astro') {
+    const r = k.rising < 0 ? 'rx' : `r${k.rising}`;
+    return `${k.lang}_astro_s${k.sun}_${r}`;
+  }
+  return `${k.lang}_zodiac_z${k.zodiac}`;
 }
 
 export function parseKeyId(id) {
-  const parts = id.split(':');
-  if (parts[1] === 'a') return { kind: 'astro', lang: parts[0], sun: +parts[2], rising: +parts[3], zodiac: -1 };
-  return { kind: 'zodiac', lang: parts[0], sun: -1, rising: -1, zodiac: +parts[2] };
+  const parts = id.split('_');
+  const lang = parts[0];
+  if (parts[1] === 'astro') {
+    const sun = +parts[2].slice(1);
+    const rising = parts[3] === 'rx' ? -1 : +parts[3].slice(1);
+    return { kind: 'astro', lang, sun, rising, zodiac: -1 };
+  }
+  return { kind: 'zodiac', lang, sun: -1, rising: -1, zodiac: +parts[2].slice(1) };
 }
