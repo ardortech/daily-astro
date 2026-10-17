@@ -52,9 +52,7 @@ export default async (req) => {
 
   // Check which keys already have rows (for idempotent re-runs)
   const { data: existingRows } = await supabase.from('daily_readings').select('kind, lang, sun, rising, zodiac').eq('date', date);
-  const existingSet = new Set((existingRows || []).map(r =>
-    r.kind === 'astro' ? `${r.lang}:a:${r.sun}:${r.rising}` : `${r.lang}:z:${r.zodiac}`
-  ));
+  const existingSet = new Set((existingRows || []).map(r => keyId(r)));
 
   const t0 = Date.now();
   const aiRows = [];

@@ -135,8 +135,7 @@ export default async (req) => {
   const { data: prevRows } = await supabase.from('daily_readings').select('lang, kind, sun, rising, zodiac, headline').eq('date', yesterday);
   const prevMap = {};
   for (const r of (prevRows || [])) {
-    const k = r.kind === 'astro' ? `${r.lang}:a:${r.sun}:${r.rising}` : `${r.lang}:z:${r.zodiac}`;
-    prevMap[k] = r.headline;
+    prevMap[keyId(r)] = r.headline;
   }
 
   // Build batch requests (336 = (12×13 astro + 12 zodiac) × 2 langs)
@@ -152,7 +151,14 @@ export default async (req) => {
     },
   }));
 
-  const batch = await anthropic.messages.batches.create({ requests });
+  let batch;
+  try {
+    batch = await anthropic.messages.batches.create({ requests });
+  } catch (e) {
+    const msg = e.message?.slice(0, 300) ?? String(e);
+    console.error(`daily-readings: batches.create failed for ${date}: ${msg}`);
+    return new Response(JSON.stringify({ date, error: msg }), { status: 500, headers: { 'content-type': 'application/json' } });
+  }
   console.log(`daily-readings: batch submitted`, JSON.stringify({ date, batch_id: batch.id, items: requests.length }));
 
   // Store batch reference
