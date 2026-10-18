@@ -78,6 +78,10 @@ export function App() {
     auto().finally(done);
     const timer = setTimeout(done, 5000); // offline or slow: don't hold the app hostage
     window.addEventListener('online', auto);
+    // Re-sync push subscription on every app open (endpoints can change)
+    import('./lib/push.js').then(({ syncSubscription }) =>
+      import('./lib/supabase.js').then(({ supabase }) => supabase && syncSubscription(supabase)),
+    ).catch(() => {});
     return () => { clearTimeout(timer); window.removeEventListener('online', auto); };
   }, []);
 
@@ -89,7 +93,7 @@ export function App() {
   else if (firstRun) body = needsInstall()
     ? <InstallWelcome toast={toast} />
     : <><InstallGuide toast={toast} /><BirthForm first initial={SAMPLE_BIRTH} onSave={saveProfile} /></>;
-  else if (view === 'reveal') body = <Reveal profile={profile} pushTime={prefs.pushTime} onDone={() => show('home')} />;
+  else if (view === 'reveal') body = <Reveal profile={profile} pushTime={prefs.pushTime} onDone={() => show('home')} toast={toast} />;
   else if (view === 'edit') body = <BirthForm initial={profile} onSave={saveProfile} />;
   else if (view === 'ask') body = <AskTab profile={profile} initialQ={askQ} onBack={() => show('home')} />;
   else if (view === 'install-guide') body = <section><div class="card" style="margin-top:14px"><h2>{t.install.title}</h2><GuideContent toast={toast} /><div style="margin-top:16px;text-align:center"><button class="chip-btn" type="button" onClick={() => show('settings')}>{t.app.back}</button></div></div></section>;

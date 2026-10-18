@@ -3,14 +3,15 @@ import { t } from '../i18n';
 const EL_VAR = ['var(--el-wood)', 'var(--el-fire)', 'var(--el-earth)', 'var(--el-metal)', 'var(--el-water)'];
 
 // 年 月 日 時 pillars, 日主 (day stem) highlighted; ？ for the hour without a birth time.
-export function Pillars({ wuxing }) {
+export function Pillars({ wuxing, onCharTap }) {
   const Z = t.zodiac;
+  const tap = onCharTap ? ch => () => onCharTap(ch) : null;
   return (
     <div class="pillars">
       {Z.pillarNames.map((n, i) => {
         const p = wuxing.pillars[i];
         return p
-          ? <div key={n} class={i === 2 ? 'dm' : ''}><span class="pl">{Z.pillar(n)}</span><span class="ch">{t.stems[p[0]]}</span><span class="ch">{t.branches[p[1]]}</span></div>
+          ? <div key={n} class={i === 2 ? 'dm' : ''}><span class="pl">{Z.pillar(n)}</span><span class={`ch${tap ? ' tappable' : ''}`} onClick={tap?.(t.stems[p[0]])}>{t.stems[p[0]]}</span><span class={`ch${tap ? ' tappable' : ''}`} onClick={tap?.(t.branches[p[1]])}>{t.branches[p[1]]}</span></div>
           : <div key={n} class="empty"><span class="pl">{Z.pillar(n)}</span><span class="ch">{Z.unknown}</span><span class="ch">{Z.unknown}</span></div>;
       })}
     </div>

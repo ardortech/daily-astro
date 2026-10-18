@@ -1,12 +1,12 @@
+import { useState, useEffect } from 'preact/hooks';
 import { cityById } from '../astro';
 import { AUTHORS } from '../data/sample.js';
 import { t } from '../i18n';
 import { animalName, dayMasterName } from './labels.js';
 import { Switch } from './Switch.jsx';
 import { isStandalone } from '../lib/platform.js';
+import { canPush, needsHomeScreen, getPermission, subscribePush, unsubscribePush, sendTestPush, syncSubscription } from '../lib/push.js';
 
-// The daily push text: one 星座 line + one 生肖 line, following the two switches.
-// Phase 3 swaps in the cached readings; Phase 4 sends it.
 export function pushPreview(p, day, prefs) {
   const S = t.settings, r = day.reading, z = day.zodiac;
   const lines = [];
@@ -15,11 +15,69 @@ export function pushPreview(p, day, prefs) {
   return { title: S.previewTitle(t.signs[p.sun], animalName(p)), body: lines.join(' ') || S.previewOff };
 }
 
-// 設定: saved birth details, push preview + switches, followed authors.
-// Phase 4 wires 開啟通知 to Notification.requestPermission() + PushManager.subscribe().
+const TIMES = [];
+for (let h = 6; h <= 10; h++) for (let m = 0; m < 60; m += 15) TIMES.push(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`);
+
 export function SettingsTab({ profile: p, day, prefs, setPrefs, follows, setFollow, onEdit, onShowGuide, toast }) {
   const S = t.settings;
   const pv = pushPreview(p, day, prefs);
+  const [pushState, setPushState] = useState('loading');
+  const [sending, setSending] = useState(false);
+
+  useEffect(() => {
+    checkPushState();
+  }, []);
+
+  async function checkPushState() {
+    if (needsHomeScreen()) { setPushState('needs-install'); return; }
+    if (!canPush()) { setPushState('unsupported'); return; }
+    const perm = await getPermission();
+    setPushState(perm === 'granted' ? 'granted' : perm === 'denied' ? 'denied' : 'default');
+  }
+
+  async function handleEnable() {
+    try {
+      const { supabase } = await import('../lib/supabase.js');
+      if (!supabase) { toast(S.demoToast(prefs.pushTime)); return; }
+      const result = await subscribePush(supabase);
+      if (result.permission === 'granted') {
+        setPushState('granted');
+        setPrefs({ ...prefs, pushEnabled: true });
+        toast(t.push.enabled);
+      } else if (result.permission === 'denied') {
+        setPushState('denied');
+      }
+    } catch (err) {
+      console.warn('push subscribe failed', err);
+      toast(t.push.error);
+    }
+  }
+
+  async function handleDisable() {
+    try {
+      const { supabase } = await import('../lib/supabase.js');
+      if (supabase) await unsubscribePush(supabase);
+      setPrefs({ ...prefs, pushEnabled: false });
+      setPushState('default');
+      toast(t.push.disabled);
+    } catch (err) {
+      console.warn('push unsubscribe failed', err);
+    }
+  }
+
+  async function handleTest() {
+    setSending(true);
+    try {
+      const { supabase } = await import('../lib/supabase.js');
+      if (!supabase) { toast(S.demoToast(prefs.pushTime)); setSending(false); return; }
+      await sendTestPush(supabase);
+      toast(t.push.testSent);
+    } catch (err) {
+      toast(err.message?.includes('rate limit') ? t.push.testLimit : t.push.error);
+    }
+    setSending(false);
+  }
+
   return (
     <section role="tabpanel">
       <h2 style="font-size:22px;margin-top:4px">{S.title}</h2>
@@ -46,20 +104,52 @@ export function SettingsTab({ profile: p, day, prefs, setPrefs, follows, setFoll
         </div>
 
         <div class="card">
-          <div class="row">
-            <div><b>{S.daily}</b><div class="why">{S.dailyHint}</div></div>
-            <Switch checked={prefs.daily} ariaLabel={S.daily} onChange={v => setPrefs({ ...prefs, daily: v })} />
-          </div>
-          <div class="row">
-            <div><b>{S.zodiacDaily}</b><div class="why">{S.zodiacDailyHint}</div></div>
-            <Switch checked={prefs.zodiacDaily} ariaLabel={S.zodiacDaily} onChange={v => setPrefs({ ...prefs, zodiacDaily: v })} />
-          </div>
-          <div class="row">
-            <div style="flex:1"><b>{S.time}</b></div>
-            <div style="width:130px">
-              <input type="time" value={prefs.pushTime} aria-label={S.time} onInput={e => e.currentTarget.value && setPrefs({ ...prefs, pushTime: e.currentTarget.value })} />
+          <div class="label" style="margin-bottom:8px">{t.push.sectionTitle}</div>
+
+          {pushState === 'granted' && (
+            <>
+              <div class="row" style="border-top:0">
+                <div><b>{t.push.masterSwitch}</b></div>
+                <Switch checked={true} ariaLabel={t.push.masterSwitch} onChange={() => handleDisable()} />
+              </div>
+              <div class="row">
+                <div><b>{S.daily}</b><div class="why">{S.dailyHint}</div></div>
+                <Switch checked={prefs.daily} ariaLabel={S.daily} onChange={v => setPrefs({ ...prefs, daily: v })} />
+              </div>
+              <div class="row">
+                <div><b>{S.zodiacDaily}</b><div class="why">{S.zodiacDailyHint}</div></div>
+                <Switch checked={prefs.zodiacDaily} ariaLabel={S.zodiacDaily} onChange={v => setPrefs({ ...prefs, zodiacDaily: v })} />
+              </div>
+              <div class="row">
+                <div style="flex:1"><b>{S.time}</b></div>
+                <div style="width:130px">
+                  <select value={prefs.pushTime} aria-label={S.time} onChange={e => e.currentTarget.value && setPrefs({ ...prefs, pushTime: e.currentTarget.value })}>
+                    {TIMES.map(t => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                </div>
+              </div>
+              <button class="chip-btn" type="button" style="margin-top:10px;width:100%" onClick={handleTest} disabled={sending}>
+                {sending ? t.push.testSending : t.push.testBtn}
+              </button>
+            </>
+          )}
+
+          {pushState === 'needs-install' && (
+            <p class="why" style="margin-top:4px">{t.push.needsInstall}</p>
+          )}
+
+          {pushState === 'denied' && (
+            <div style="margin-top:4px">
+              <p class="why">{t.push.denied}</p>
+              <p class="why" style="margin-top:6px">{t.push.deniedHint}</p>
             </div>
-          </div>
+          )}
+
+          {(pushState === 'default' || pushState === 'loading' || pushState === 'unsupported') && pushState !== 'needs-install' && pushState !== 'denied' && (
+            <button class="primary" type="button" style="margin-top:8px" onClick={handleEnable} disabled={pushState === 'loading' || pushState === 'unsupported'}>
+              {t.push.enableBtn}
+            </button>
+          )}
         </div>
 
         <div class="card">
@@ -75,7 +165,6 @@ export function SettingsTab({ profile: p, day, prefs, setPrefs, follows, setFoll
           })}
         </div>
 
-        <button class="primary" type="button" onClick={() => toast(S.demoToast(prefs.pushTime))}>{S.enable}</button>
         <p class="note">{S.note}</p>
       </div>
     </section>

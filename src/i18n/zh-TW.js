@@ -223,6 +223,21 @@ export default {
     cai: '財神',
     hours: '吉時',
     note: '五行只計天干地支本氣。宜忌依萬年曆資料，僅供參考。',
+    gzExplainer: {
+      title: '天干地支',
+      stemTitle: '十天干',
+      branchTitle: '十二地支',
+      stemDesc: '天干代表天的能量，依五行排列：',
+      branchDesc: '地支代表地的能量，對應十二生肖：',
+      stemPairs: [['甲乙', '木'], ['丙丁', '火'], ['戊己', '土'], ['庚辛', '金'], ['壬癸', '水']],
+      branchPairs: [['子', '鼠'], ['丑', '牛'], ['寅', '虎'], ['卯', '兔'], ['辰', '龍'], ['巳', '蛇'], ['午', '馬'], ['未', '羊'], ['申', '猴'], ['酉', '雞'], ['戌', '狗'], ['亥', '豬']],
+      whatIs: ch => `「${ch}」是什麼？`,
+      stem: '天干',
+      branch: '地支',
+      element: el => `五行屬${el}`,
+      animal: a => `生肖：${a}`,
+      close: '關閉',
+    },
   },
 
   ask: {
@@ -285,6 +300,22 @@ export default {
     susan: { name: 'Susan Miller', short: 'S', where: 'Astrology Zone', cadence: '月運' },
   },
 
+  push: {
+    sectionTitle: '通知',
+    masterSwitch: '推播通知',
+    enableBtn: '開啟每日通知',
+    enabled: '推播通知已開啟',
+    disabled: '推播通知已關閉',
+    error: '開啟通知時出了問題，請稍後再試。',
+    needsInstall: 'iPhone 需要先把吉光加入主畫面才能收通知',
+    denied: '你已經封鎖了通知權限。',
+    deniedHint: 'iOS：設定 → 通知 → 吉光，開啟「允許通知」。Android：長按網址列 → 網站設定 → 通知。',
+    testBtn: '傳送測試通知',
+    testSending: '傳送中…',
+    testSent: '測試通知已送出！',
+    testLimit: '每小時最多測試 3 次，稍後再試。',
+  },
+
   settings: {
     title: '設定',
     me: '我的資料',
@@ -306,7 +337,7 @@ export default {
     following: '追蹤的老師',
     followAria: name => `追蹤${name}`,
     enable: '開啟通知',
-    note: '需先「加入主畫面」才能收到推播通知。',
+    note: '推播通知需先「加入主畫面」。推送時間以你的裝置所在時區為準。',
     demoToast: time => `示範：每天 ${time} 推送`,
     followed: '已追蹤',
     unfollowed: '已取消追蹤',

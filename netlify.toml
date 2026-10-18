@@ -13,7 +13,7 @@
   directory = "netlify/functions"
   # src/astro loads astronomy-engine's CommonJS build in Node (src/astro/engine.node.cjs).
   # nft can't see that require after transpiling, so ship the package explicitly.
-  included_files = ["node_modules/astronomy-engine/package.json", "node_modules/astronomy-engine/astronomy.js", "node_modules/lunar-javascript/**"]
+  included_files = ["node_modules/astronomy-engine/package.json", "node_modules/astronomy-engine/astronomy.js", "node_modules/lunar-javascript/**", "node_modules/web-push/**"]
 
 # The service worker must never be cached by the browser/CDN, or updates stall.
 [[headers]]

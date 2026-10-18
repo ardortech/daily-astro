@@ -26,7 +26,7 @@ function buildAstroPrompt(sun, rising, skyRow, yesterday) {
 ${skyRow.voc_start ? `月亮空亡期：${skyRow.voc_start} 至 ${skyRow.voc_end}。` : ''}
 
 對象：太陽${sunSign}座，${risingStr}。
-月亮落入第${house + 1}宮（${HOUSES[house]}），與太陽成${ASPECTS[aspect]}。${antiRepeat}`;
+月亮落入${HOUSES[house]}宮，與太陽成${ASPECTS[aspect]}。${antiRepeat}`;
 }
 
 function buildAstroPromptEn(sun, rising, skyRow, yesterday) {

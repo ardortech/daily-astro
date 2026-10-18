@@ -16,7 +16,7 @@ export const K = {
 // Used until the user changes them (they aren't written to the cache before that).
 export const DEFAULTS = {
   follows: { tang: true, mafalda: true, susan: true },
-  prefs: { daily: true, zodiacDaily: true, pushTime: '07:30' },
+  prefs: { daily: true, zodiacDaily: true, pushTime: '07:30', pushEnabled: false },
 };
 
 // True when supabase-js has a stored session (its `sb-<project>-auth-token` key), i.e. this

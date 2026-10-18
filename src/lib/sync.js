@@ -60,7 +60,7 @@ async function pull(supabase, userId) {
   const followed = new Set(f.data.map(r => r.author_id));
   return {
     profile: fromRow(p.data),
-    prefs: { pushTime: p.data.push_time.slice(0, 5), daily: p.data.daily_enabled, zodiacDaily: p.data.zodiac_daily_enabled ?? true },
+    prefs: { pushTime: p.data.push_time.slice(0, 5), daily: p.data.daily_enabled, zodiacDaily: p.data.zodiac_daily_enabled ?? true, pushEnabled: p.data.push_enabled ?? false },
     follows: Object.fromEntries(AUTHOR_IDS.map(a => [a, followed.has(a)])),
   };
 }
