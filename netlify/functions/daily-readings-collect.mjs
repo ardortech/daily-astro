@@ -31,15 +31,11 @@ export default async (req) => {
   const date = await getTargetDate(req);
   const supabase = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
 
-  // Find pending batch for this date
+  // Find batch for this date
   const { data: batchRow } = await supabase.from('reading_batches').select('batch_id, status').eq('date', date).maybeSingle();
   if (!batchRow) {
     console.log(`daily-readings-collect: no batch found for ${date}`);
     return new Response(JSON.stringify({ date, error: 'no_batch' }), { status: 404, headers: { 'content-type': 'application/json' } });
-  }
-  if (batchRow.status === 'collected') {
-    console.log(`daily-readings-collect: already collected for ${date}`);
-    return new Response(JSON.stringify({ date, status: 'already_collected' }), { headers: { 'content-type': 'application/json' } });
   }
 
   const anthropic = new Anthropic({ apiKey });
@@ -50,8 +46,10 @@ export default async (req) => {
     return new Response(JSON.stringify({ date, status: batch.processing_status, counts: batch.request_counts }), { headers: { 'content-type': 'application/json' } });
   }
 
-  // Check which keys already have rows (for idempotent re-runs)
-  const { data: existingRows } = await supabase.from('daily_readings').select('kind, lang, sun, rising, zodiac').eq('date', date);
+  // Skip keys that already have AI rows (so re-collect replaces templates but not AI)
+  const { data: existingRows } = await supabase
+    .from('daily_readings').select('kind, lang, sun, rising, zodiac, source')
+    .eq('date', date).eq('source', 'ai');
   const existingSet = new Set((existingRows || []).map(r => keyId(r)));
 
   const t0 = Date.now();
@@ -61,7 +59,6 @@ export default async (req) => {
   for await (const entry of await anthropic.messages.batches.results(batchRow.batch_id)) {
     const kid = entry.custom_id;
 
-    // Skip keys that already have rows in the DB
     if (existingSet.has(kid)) { skipCount++; continue; }
 
     if (entry.result.type !== 'succeeded') {
@@ -90,11 +87,12 @@ export default async (req) => {
       headline: reading.headline, body: reading.body,
       watch_out: reading.watch_out || null,
       scores: reading.scores, what_changed: reading.what_changed,
+      source: 'ai',
     });
     aiCount++;
   }
 
-  // Upsert AI rows
+  // Upsert AI rows (replaces any template rows for the same keys)
   if (aiRows.length > 0) {
     const { error } = await supabase.from('daily_readings').upsert(aiRows, { onConflict: 'date,kind,lang,sun,rising,zodiac' });
     if (error) {
@@ -103,11 +101,11 @@ export default async (req) => {
     }
   }
 
-  // Fill gaps with template fallbacks (only for keys still missing)
-  const { data: afterRows } = await supabase.from('daily_readings').select('kind, lang, sun, rising, zodiac').eq('date', date);
-  const afterSet = new Set((afterRows || []).map(r =>
-    r.kind === 'astro' ? `${r.lang}:a:${r.sun}:${r.rising}` : `${r.lang}:z:${r.zodiac}`
-  ));
+  // Fill gaps with template fallbacks (only keys with no row at all)
+  const { data: afterRows } = await supabase
+    .from('daily_readings').select('kind, lang, sun, rising, zodiac')
+    .eq('date', date);
+  const afterSet = new Set((afterRows || []).map(r => keyId(r)));
   const keys = allKeys();
   const missingKeys = keys.filter(k => !afterSet.has(keyId(k)));
 
@@ -121,6 +119,7 @@ export default async (req) => {
         headline: reading.headline, body: reading.body,
         watch_out: reading.watch_out || null,
         scores: reading.scores, what_changed: reading.what_changed,
+        source: 'template',
       };
     });
     const { error } = await supabase.from('daily_readings').upsert(fallbackRows, { onConflict: 'date,kind,lang,sun,rising,zodiac' });
@@ -131,9 +130,10 @@ export default async (req) => {
   // Mark batch as collected
   await supabase.from('reading_batches').update({ status: 'collected' }).eq('date', date);
 
+  const total = aiCount + fallbackCount + skipCount + parseFailCount + errorCount;
   const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
-  const summary = { date, ai: aiCount, fallback: fallbackCount, skipped: skipCount, parse_fail: parseFailCount, error: errorCount, elapsed_s: elapsed };
-  console.log(`daily-readings done: ai=${aiCount} fallback=${fallbackCount} skipped=${skipCount} in ${elapsed}s`);
+  const summary = { date, ai: aiCount, fallback: fallbackCount, skipped: skipCount, parse_fail: parseFailCount, error: errorCount, total, elapsed_s: elapsed };
+  console.log(`daily-readings done: ai=${aiCount} fallback=${fallbackCount} skipped=${skipCount} parseFail=${parseFailCount} error=${errorCount} total=${total} in ${elapsed}s`);
   return new Response(JSON.stringify(summary), { headers: { 'content-type': 'application/json' } });
 };
 

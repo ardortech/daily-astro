@@ -136,6 +136,54 @@ test('custom_id: valid pattern, unique, round-trips for all 336 keys', () => {
   assert.equal(r.rtFails, 0, 'all keys must round-trip through keyId → parseKeyId');
 });
 
+// collect logic: simulate batch results and verify source/fallback behaviour.
+const collectLogicRunner = `
+  process.env.VITE_SUPABASE_URL = 'https://example.supabase.co';
+  const { allKeys, keyId, parseKeyId, templateFor, parseToolReading, dailySky } = await import('./netlify/functions/_lib/readings.mjs');
+  const keys = allKeys();
+
+  // 1. afterSet built from DB-shaped rows must match keyId for every key.
+  //    This is the exact bug: afterSet used "zh:a:0:-1" while keyId returns "zh_astro_s0_rx".
+  const dbRows = keys.map(k => ({ kind: k.kind, lang: k.lang, sun: k.sun, rising: k.rising, zodiac: k.zodiac }));
+  const afterSet = new Set(dbRows.map(r => keyId(r)));
+  const missingFromAfterSet = keys.filter(k => !afterSet.has(keyId(k)));
+
+  // 2. All-success batch: every key has an AI row → fallback count = 0.
+  const aiSet = new Set(keys.map(k => keyId(k)));
+  const missingAfterAi = keys.filter(k => !aiSet.has(keyId(k)));
+
+  // 3. Mixed batch: 4 keys fail → exactly those 4 get templates.
+  const failedKids = [keyId(keys[0]), keyId(keys[100]), keyId(keys[200]), keyId(keys[335])];
+  const partialAiSet = new Set(keys.map(k => keyId(k)).filter(id => !failedKids.includes(id)));
+  const missingAfterPartial = keys.filter(k => !partialAiSet.has(keyId(k)));
+  const missingIds = missingAfterPartial.map(k => keyId(k));
+
+  // 4. Re-collect: existingSet with source='ai' skips AI rows; template rows are re-processable.
+  const aiOnlyRows = keys.slice(0, 100).map(k => ({ ...k, source: 'ai' }));
+  const templateRows = keys.slice(100, 200).map(k => ({ ...k, source: 'template' }));
+  const existingAiSet = new Set(aiOnlyRows.map(r => keyId(r)));
+  const reprocessable = keys.slice(100, 200).filter(k => !existingAiSet.has(keyId(k)));
+
+  console.log(JSON.stringify({
+    afterSetMatch: missingFromAfterSet.length === 0,
+    allSuccessFallback: missingAfterAi.length,
+    mixedFailCount: missingAfterPartial.length,
+    mixedFailIds: missingIds.sort(),
+    expectedFailIds: failedKids.sort(),
+    reprocessableCount: reprocessable.length,
+  }));
+`;
+
+test('collect logic: afterSet matches keyId, all-success/mixed/re-collect', () => {
+  const out = execFileSync(process.execPath, [...nodeFlags, '--input-type=module', '-e', collectLogicRunner], { encoding: 'utf8' });
+  const r = JSON.parse(out.trim().split('\n').pop());
+  assert.ok(r.afterSetMatch, 'afterSet built from DB rows must match keyId for all keys');
+  assert.equal(r.allSuccessFallback, 0, 'all-success batch: no fallback needed');
+  assert.equal(r.mixedFailCount, 4, 'mixed batch: exactly 4 failed keys need templates');
+  assert.deepStrictEqual(r.mixedFailIds, r.expectedFailIds, 'mixed batch: failed keys match');
+  assert.equal(r.reprocessableCount, 100, 're-collect: template rows are re-processable (not in AI-only set)');
+});
+
 // ask.mjs: verify it loads and has the right path.
 const askRunner = `
   globalThis.fetch = async () => new Response('{}', { status: 200, headers: { 'content-type': 'application/json' } });
