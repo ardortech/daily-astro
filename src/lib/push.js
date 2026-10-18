@@ -2,11 +2,12 @@
 // Subscribe / unsubscribe from the browser, sync with Supabase via the API.
 import { isStandalone, isIOS, deviceTimeZone } from './platform.js';
 
-const VAPID_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY;
+const VAPID_KEY = (import.meta.env.VITE_VAPID_PUBLIC_KEY || '').trim();
 
 function urlBase64ToUint8Array(base64String) {
-  const padding = '='.repeat((4 - base64String.length % 4) % 4);
-  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const s = base64String.trim();
+  const padding = '='.repeat((4 - s.length % 4) % 4);
+  const base64 = (s + padding).replace(/-/g, '+').replace(/_/g, '/');
   const raw = atob(base64);
   const out = new Uint8Array(raw.length);
   for (let i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i);
@@ -26,33 +27,67 @@ export async function getPermission() {
   return Notification.permission;
 }
 
+// Exposed so the diagnostics panel can read it.
+export let lastPushError = null;
+
 export async function subscribePush(supabase) {
-  if (!canPush()) throw new Error('Push not supported');
-  const permission = await Notification.requestPermission();
-  if (permission !== 'granted') return { permission };
+  lastPushError = null;
+  let step = 'init';
+  try {
+    step = 'vapid-key-check';
+    if (!VAPID_KEY) throw new Error('VITE_VAPID_PUBLIC_KEY is missing');
+    const appServerKey = urlBase64ToUint8Array(VAPID_KEY);
 
-  const reg = await navigator.serviceWorker.ready;
-  const sub = await reg.pushManager.subscribe({
-    userVisibleOnly: true,
-    applicationServerKey: urlBase64ToUint8Array(VAPID_KEY),
-  });
-  const keys = sub.toJSON().keys;
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) throw new Error('Not signed in');
+    step = 'sw-ready';
+    const reg = await navigator.serviceWorker.ready;
 
-  await fetch('/api/push/subscribe', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
-    body: JSON.stringify({
-      endpoint: sub.endpoint,
-      p256dh: keys.p256dh,
-      auth: keys.auth,
-      lang: document.documentElement.lang?.startsWith('en') ? 'en' : 'zh',
-      user_agent: navigator.userAgent,
-      time_zone: deviceTimeZone(),
-    }),
-  });
-  return { permission: 'granted', subscription: sub };
+    step = 'permission';
+    const permission = await Notification.requestPermission();
+    if (permission !== 'granted') return { permission };
+
+    step = 'subscribe';
+    let sub;
+    try {
+      sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: appServerKey });
+    } catch (subErr) {
+      // If the existing subscription uses a different VAPID key, unsubscribe and retry.
+      if (subErr.name === 'InvalidStateError' || /applicationServerKey/i.test(subErr.message)) {
+        const old = await reg.pushManager.getSubscription();
+        if (old) await old.unsubscribe();
+        sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: appServerKey });
+      } else {
+        throw subErr;
+      }
+    }
+
+    step = 'api-call';
+    const keys = sub.toJSON().keys;
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) throw new Error('Not signed in');
+
+    const res = await fetch('/api/push/subscribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+      body: JSON.stringify({
+        endpoint: sub.endpoint,
+        p256dh: keys.p256dh,
+        auth: keys.auth,
+        lang: document.documentElement.lang?.startsWith('en') ? 'en' : 'zh',
+        user_agent: navigator.userAgent,
+        time_zone: deviceTimeZone(),
+      }),
+    });
+    if (!res.ok) {
+      step = `api-${res.status}`;
+      const body = await res.text().catch(() => '');
+      throw new Error(`HTTP ${res.status}: ${body.slice(0, 200)}`);
+    }
+    return { permission: 'granted', subscription: sub };
+  } catch (err) {
+    lastPushError = { step, name: err.name, message: err.message };
+    console.error(`[push] failed at ${step}:`, err);
+    throw err;
+  }
 }
 
 export async function unsubscribePush(supabase) {
@@ -107,4 +142,35 @@ export async function syncSubscription(supabase) {
       }),
     }).catch(() => {});
   } catch { /* best effort */ }
+}
+
+export async function getDiagnostics() {
+  const diag = {
+    standalone: isStandalone(),
+    notificationPermission: typeof Notification !== 'undefined' ? Notification.permission : 'n/a',
+    swState: 'n/a',
+    swScope: 'n/a',
+    swScriptURL: 'n/a',
+    vapidKeyPresent: !!VAPID_KEY,
+    vapidKeyLength: VAPID_KEY.length,
+    vapidKeyPrefix: VAPID_KEY.slice(0, 6),
+    existingSubscription: false,
+    lastError: lastPushError,
+  };
+  try {
+    const reg = await navigator.serviceWorker.getRegistration('/');
+    if (reg) {
+      const sw = reg.active || reg.waiting || reg.installing;
+      diag.swState = sw?.state || 'none';
+      diag.swScope = reg.scope;
+      diag.swScriptURL = sw?.scriptURL || 'n/a';
+      const sub = await reg.pushManager?.getSubscription();
+      diag.existingSubscription = !!sub;
+    } else {
+      diag.swState = 'no registration';
+    }
+  } catch (e) {
+    diag.swState = `error: ${e.message}`;
+  }
+  return diag;
 }
