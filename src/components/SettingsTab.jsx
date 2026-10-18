@@ -5,7 +5,7 @@ import { t } from '../i18n';
 import { animalName, dayMasterName } from './labels.js';
 import { Switch } from './Switch.jsx';
 import { isStandalone } from '../lib/platform.js';
-import { canPush, needsHomeScreen, getPermission, subscribePush, unsubscribePush, sendTestPush, syncSubscription } from '../lib/push.js';
+import { canPush, needsHomeScreen, getPermission, subscribePush, unsubscribePush, sendTestPush, syncSubscription, getDiagnostics, lastPushError } from '../lib/push.js';
 
 export function pushPreview(p, day, prefs) {
   const S = t.settings, r = day.reading, z = day.zodiac;
@@ -23,6 +23,10 @@ export function SettingsTab({ profile: p, day, prefs, setPrefs, follows, setFoll
   const pv = pushPreview(p, day, prefs);
   const [pushState, setPushState] = useState('loading');
   const [sending, setSending] = useState(false);
+  const [pushError, setPushError] = useState(null);
+  const [tapCount, setTapCount] = useState(0);
+  const [showDiag, setShowDiag] = useState(false);
+  const [diag, setDiag] = useState(null);
 
   useEffect(() => {
     checkPushState();
@@ -36,6 +40,7 @@ export function SettingsTab({ profile: p, day, prefs, setPrefs, follows, setFoll
   }
 
   async function handleEnable() {
+    setPushError(null);
     try {
       const { supabase } = await import('../lib/supabase.js');
       if (!supabase) { toast(S.demoToast(prefs.pushTime)); return; }
@@ -48,7 +53,8 @@ export function SettingsTab({ profile: p, day, prefs, setPrefs, follows, setFoll
         setPushState('denied');
       }
     } catch (err) {
-      console.warn('push subscribe failed', err);
+      const info = lastPushError || { step: '?', name: err.name, message: err.message };
+      setPushError(`${info.step}: ${info.name} — ${info.message}`);
       toast(t.push.error);
     }
   }
@@ -76,6 +82,16 @@ export function SettingsTab({ profile: p, day, prefs, setPrefs, follows, setFoll
       toast(err.message?.includes('rate limit') ? t.push.testLimit : t.push.error);
     }
     setSending(false);
+  }
+
+  function handleNoteTap() {
+    const next = tapCount + 1;
+    setTapCount(next);
+    if (next >= 5) {
+      setTapCount(0);
+      setShowDiag(true);
+      getDiagnostics().then(setDiag).catch(() => {});
+    }
   }
 
   return (
@@ -150,6 +166,10 @@ export function SettingsTab({ profile: p, day, prefs, setPrefs, follows, setFoll
               {t.push.enableBtn}
             </button>
           )}
+
+          {pushError && (
+            <p class="push-error" style="margin-top:8px;font-size:11px;color:var(--muted);word-break:break-all">{pushError}</p>
+          )}
         </div>
 
         <div class="card">
@@ -165,7 +185,26 @@ export function SettingsTab({ profile: p, day, prefs, setPrefs, follows, setFoll
           })}
         </div>
 
-        <p class="note">{S.note}</p>
+        <p class="note" onClick={handleNoteTap} style="cursor:default">{S.note}</p>
+
+        {showDiag && diag && (
+          <div class="card" style="font-size:12px;font-family:var(--f-mono);word-break:break-all">
+            <div class="label" style="margin-bottom:8px">Push Diagnostics</div>
+            <div>standalone: <b>{String(diag.standalone)}</b></div>
+            <div>Notification.permission: <b>{diag.notificationPermission}</b></div>
+            <div>SW state: <b>{diag.swState}</b></div>
+            <div>SW scope: <b>{diag.swScope}</b></div>
+            <div>SW script: <b>{diag.swScriptURL}</b></div>
+            <div>VAPID key: <b>{diag.vapidKeyPresent ? `yes (${diag.vapidKeyLength} chars, ${diag.vapidKeyPrefix}…)` : 'MISSING'}</b></div>
+            <div>Existing sub: <b>{String(diag.existingSubscription)}</b></div>
+            {diag.lastError && (
+              <div style="margin-top:6px;color:var(--cinnabar)">
+                Last error @ {diag.lastError.step}: {diag.lastError.name} — {diag.lastError.message}
+              </div>
+            )}
+            <button class="chip-btn" type="button" style="margin-top:8px" onClick={() => setShowDiag(false)}>Close</button>
+          </div>
+        )}
       </div>
     </section>
   );
