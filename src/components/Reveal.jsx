@@ -1,14 +1,33 @@
+import { useState } from 'preact/hooks';
 import { GLYPH } from '../astro';
 import { t } from '../i18n';
 import { gz, animalName, dayMasterName } from './labels.js';
 import { Pillars, WuxingRadar } from './Wuxing.jsx';
 import { ZodiacImg } from './ZodiacImg.jsx';
+import { canPush, needsHomeScreen, subscribePush } from '../lib/push.js';
 
-// One-time screen after the first save: the chart, 八字 五行 and what happens next.
-export function Reveal({ profile: p, pushTime, onDone }) {
+export function Reveal({ profile: p, pushTime, onDone, toast }) {
   const R = t.reveal, w = p.wuxing;
+  const [pushState, setPushState] = useState(needsHomeScreen() ? 'needs-install' : canPush() ? 'ready' : 'unsupported');
   const items = [[p.sun, p.sunUncertain ? 'sunApprox' : 'sun', R.sun, t.sunKeywords[p.sun]], [p.moon, p.moonUncertain ? 'moonApprox' : 'moon', R.moon, t.moonKeywords[p.moon]]];
   if (p.rising !== null) items.push([p.rising, 'rising', R.rising, t.risingKeywords[p.rising]]);
+
+  async function handlePush() {
+    try {
+      const { supabase } = await import('../lib/supabase.js');
+      if (!supabase) { onDone(); return; }
+      const result = await subscribePush(supabase);
+      if (result.permission === 'granted') {
+        setPushState('granted');
+        toast?.(t.push.enabled);
+      } else if (result.permission === 'denied') {
+        setPushState('denied');
+      }
+    } catch {
+      setPushState('error');
+    }
+  }
+
   return (
     <section>
       <div class="label mono">{R.label}</div>
@@ -33,6 +52,18 @@ export function Reveal({ profile: p, pushTime, onDone }) {
       <div class="card" style="margin-top:14px">
         <div class="label">{R.nextLabel}</div>
         <p style="margin-top:4px">{R.next[0]}<b class="mono">{pushTime}</b>{R.next[1]}</p>
+        {pushState === 'ready' && (
+          <button class="primary" type="button" style="margin-top:10px" onClick={handlePush}>{t.push.enableBtn}</button>
+        )}
+        {pushState === 'granted' && (
+          <p class="why" style="margin-top:8px;color:var(--good)">{t.push.enabled}</p>
+        )}
+        {pushState === 'needs-install' && (
+          <p class="why" style="margin-top:8px">{t.push.needsInstall}</p>
+        )}
+        {pushState === 'denied' && (
+          <p class="why" style="margin-top:8px">{t.push.deniedHint}</p>
+        )}
       </div>
       <button class="primary" type="button" style="margin-top:14px" onClick={onDone}>{R.go}</button>
     </section>

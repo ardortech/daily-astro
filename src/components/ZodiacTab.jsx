@@ -1,12 +1,15 @@
+import { useState } from 'preact/hooks';
 import { STEM_EL, WUXING_HEX, luckyAnimals } from '../astro';
 import { t } from '../i18n';
 import { gz, animalName, dayMasterName } from './labels.js';
 import { Stars } from './Stars.jsx';
 import { Pillars, WuxingRadar } from './Wuxing.jsx';
 import { ZodiacImg } from './ZodiacImg.jsx';
+import { GzExplainer } from './GzExplainer.jsx';
 
 // 生肖: today's relation to the year branch, 補運 colour, 八字 五行 and the almanac.
 export function ZodiacTab({ profile: p, day }) {
+  const [gzChar, setGzChar] = useState(null);
   const Z = t.zodiac, a = day.alm, z = day.zodiac, w = p.wuxing;
   const [relName, focus, watch] = t.relations[z.rel];
   const yi = a.yi, ji = a.ji;
@@ -65,7 +68,7 @@ export function ZodiacTab({ profile: p, day }) {
         <div class="card">
           <div class="label">{Z.baziLabel}</div>
           <h2 style="margin-top:2px">{Z.baziTitle(dayMasterName(w), me)}</h2>
-          <Pillars wuxing={w} />
+          <Pillars wuxing={w} onCharTap={setGzChar} />
           <WuxingRadar wuxing={w} />
           <p class="why" style="margin-top:10px">{Z.wxNote(t.wuxing[lucky], w.pillars.length < 4)}</p>
         </div>
@@ -88,6 +91,7 @@ export function ZodiacTab({ profile: p, day }) {
         </div>
         <p class="note">{Z.note}</p>
       </div>
+      {gzChar !== null && <GzExplainer char={gzChar} onClose={() => setGzChar(null)} />}
     </section>
   );
 }

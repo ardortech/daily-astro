@@ -58,17 +58,19 @@ self.addEventListener('fetch', event => {
   }
 });
 
-// ---- Push: stub until Phase 4 (VAPID, per-user time + time zone). ----
+// ---- Push (Phase 4): VAPID, per-user time + time zone ----
 // iOS revokes the subscription if a push arrives without a visible
-// notification, so the stub still shows one.
+// notification, so always show one.
 self.addEventListener('push', event => {
   let data = {};
   try { data = event.data ? event.data.json() : {}; } catch { data = { body: event.data?.text() }; }
+  const tag = data.tag || `daily-${new Date().toISOString().slice(0, 10)}`;
   event.waitUntil(self.registration.showNotification(data.title || '每日吉光', {
     body: data.body || '',
     icon: '/icon-192.png',
-    badge: '/icon-192.png',
-    lang: 'zh-TW',
+    badge: '/badge-72.png',
+    tag,
+    lang: data.lang === 'en' ? 'en' : 'zh-TW',
     data: { url: data.url || '/' },
   }));
 });
