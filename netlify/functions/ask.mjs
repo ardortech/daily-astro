@@ -225,7 +225,7 @@ ${daysText}
       const rel = relation(a.day[1], profile.zodiac);
       const tg = tenGod(profile.wuxing?.dayMaster ?? 0, a.day[0]);
       const dayLabel = i === 0 ? '今天' : i === 1 ? '明天' : ds;
-      dateRange.push(`${dayLabel}（${ds}）：月亮${SIGNS[ctx.mSign]}座第${house + 1}宮（${HOUSES[house]}），月日${ASPECTS[aspect]}，${PHASES[ctx.phaseIdx]}，${ANIMALS[profile.zodiac]}的${RELATIONS[rel]}日，十神${TEN_GODS[tg]}。${STEMS[a.day[0]]}${BRANCHES[a.day[1]]}日，宜${a.yi.slice(0, 3).join('、')}。`);
+      dateRange.push(`${dayLabel}（${ds}）：月亮${SIGNS[ctx.mSign]}座${HOUSES[house]}宮，月日${ASPECTS[aspect]}，${PHASES[ctx.phaseIdx]}，${ANIMALS[profile.zodiac]}的${RELATIONS[rel]}日，十神${TEN_GODS[tg]}。${STEMS[a.day[0]]}${BRANCHES[a.day[1]]}日，宜${a.yi.slice(0, 3).join('、')}。`);
     }
     return { prompt: `你是「小吉」，吉光 App 的星座運勢助手，用${tone}回答。溫暖實用，不恐嚇。
 用戶是${pf.dmEl}${pf.me}，${pf.sun}、${pf.moon}${pf.rising ? `、${pf.rising}` : ''}，五行最缺${pf.lucky}。
@@ -243,10 +243,10 @@ ${dateRange.join('\n')}
       const zh = name === 'mercury' ? '水星' : name === 'venus' ? '金星' : '火星';
       const base = profile.rising ?? profile.sun;
       const house = (data.sign - base + 12) % 12;
-      lines.push(`${zh}在${SIGNS[data.sign]}座第${house + 1}宮${data.retro ? '（逆行中）' : ''}`);
+      lines.push(`${zh}在${SIGNS[data.sign]}座${HOUSES[house]}宮${data.retro ? '（逆行中）' : ''}`);
     }
     const moonHouse = (ctx.mSign - (profile.rising ?? profile.sun) + 12) % 12;
-    lines.push(`月亮在${SIGNS[ctx.mSign]}座第${moonHouse + 1}宮，${PHASES[ctx.phaseIdx]}`);
+    lines.push(`月亮在${SIGNS[ctx.mSign]}座${HOUSES[moonHouse]}宮，${PHASES[ctx.phaseIdx]}`);
     return { prompt: `你是「小吉」，吉光 App 的星象助手，用${tone}回答。溫暖實用，不恐嚇。
 用戶是${pf.dmEl}${pf.me}，${pf.sun}、${pf.moon}${pf.rising ? `、${pf.rising}` : ''}。
 

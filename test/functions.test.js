@@ -201,6 +201,22 @@ test('ask.mjs loads in plain Node with correct path', () => {
   assert.equal(hasDefault, true);
 });
 
+// authors-check.mjs: verify it loads and has the right schedule.
+const authorsCheckRunner = `
+  globalThis.fetch = async () => new Response('[]', { status: 200, headers: { 'content-type': 'application/json' } });
+  process.env.VITE_SUPABASE_URL = 'https://example.supabase.co';
+  process.env.SUPABASE_SECRET_KEY = 'sb_secret_test';
+  const fn = await import('./netlify/functions/authors-check.mjs');
+  console.log(JSON.stringify({ schedule: fn.config.schedule, hasDefault: typeof fn.default === 'function' }));
+`;
+
+test('authors-check loads in plain Node with correct schedule', () => {
+  const out = execFileSync(process.execPath, [...nodeFlags, '--input-type=module', '-e', authorsCheckRunner], { encoding: 'utf8' });
+  const { schedule, hasDefault } = JSON.parse(out.trim().split('\n').pop());
+  assert.equal(schedule, '*/30 * * * *');
+  assert.equal(hasDefault, true);
+});
+
 test('netlify.toml ships the astronomy-engine files the Node entry requires', () => {
   // nft (Netlify's packager for v2 functions) can't trace the require in engine.node.cjs
   // once it is transpiled, so the files are listed in included_files.

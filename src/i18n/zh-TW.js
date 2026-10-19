@@ -175,9 +175,9 @@ export default {
     wheelLabel: '今日月亮位置',
     headline: (sign, theme) => `${sign}座的今天：${theme}`,
     risingUnknown: '上升 未知',
-    moonLine: { pre: '今日月亮在 ', sign: s => `${s}座`, house: '・落在你的第 ', houseSuffix: ' 宮' },
+    moonLine: { pre: '今日月亮在 ', sign: s => `${s}座`, house: (name) => `・落在你的${name}宮` },
     keyLabel: '今日重點',
-    keyTitle: (n, theme) => `月亮行經第 ${n} 宮：${theme}`,
+    keyTitle: (theme) => `月亮行經${theme}宮`,
     watchLabel: '要注意',
     watchBody: (asp, text) => `月亮與你的太陽成${asp}：${text}`,
     luckyColorLabel: '幸運色',
@@ -291,7 +291,8 @@ export default {
     new: 'NEW',
     upcomingNote: '發布後會推播通知你',
     watch: '到原頻道觀看 →',
-    footnote: '只顯示標題與連結，內容請到老師的頻道看。正式版會自動偵測新影片／新文章。',
+    footnote: '還沒有找到新的更新，請稍後再試。',
+    copyright: '內容版權屬各老師所有，吉光僅提供更新通知與連結。',
   },
 
   authors: {
@@ -337,6 +338,8 @@ export default {
     following: '追蹤的老師',
     followAria: name => `追蹤${name}`,
     enable: '開啟通知',
+    authorPush: '名師更新通知',
+    authorPushHint: '追蹤的老師發布新運勢時推播通知',
     note: '推播通知需先「加入主畫面」。推送時間以你的裝置所在時區為準。',
     demoToast: time => `示範：每天 ${time} 推送`,
     followed: '已追蹤',
@@ -372,6 +375,11 @@ export default {
     updated: '已更新你的資料',
     approxNote: (sun, moon) => `你出生那天${sun && moon ? '太陽和月亮都' : sun ? '太陽' : '月亮'}換了星座，沒有出生時間無法確定是哪一個。`,
     zodiacApproxNote: '你出生那天正好是立春，沒有出生時間無法確定生肖是哪一個。',
+  },
+
+  update: {
+    newVersion: '有新版本，點此更新',
+    version: v => `v${v}`,
   },
 
   install: {

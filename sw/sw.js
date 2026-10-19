@@ -5,6 +5,10 @@ const PRECACHE = __SW_PRECACHE__;
 const SHELL = `shell-${VERSION}`;
 const RUNTIME = 'runtime-fonts';
 
+self.addEventListener('message', event => {
+  if (event.data?.type === 'SKIP_WAITING') self.skipWaiting();
+});
+
 self.addEventListener('install', event => {
   // cache: 'reload' skips the HTTP cache, so a new worker never precaches stale icons.
   event.waitUntil(caches.open(SHELL).then(c => c.addAll(PRECACHE.map(u => new Request(u, { cache: 'reload' })))).then(() => self.skipWaiting()));

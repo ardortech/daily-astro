@@ -1,5 +1,4 @@
 import { GLYPH, phaseIndex, COLOR_HEX } from '../astro';
-import { FEED } from '../data/sample.js';
 import { t } from '../i18n';
 import { Stars } from './Stars.jsx';
 import { Wheel } from './Wheel.jsx';
@@ -7,11 +6,15 @@ import { Wheel } from './Wheel.jsx';
 const g = s => GLYPH[s];
 
 // 星座: the Moon's transit through the personal chart.
-export function AstroTab({ profile, day, follows }) {
+export function AstroTab({ profile, day, follows, feedPosts, feedReadIds }) {
   const A = t.astro, S = t.signs, r = day.reading, sky = day.sky;
   const [theme, advice] = t.houses[r.house];
   const [aspName, aspText] = t.aspects[r.aspect];
-  const mini = FEED.filter(f => follows[f.a] && !f.upcoming).slice(0, 3);
+
+  const followedAuthors = Object.keys(follows).filter(id => follows[id]);
+  const mini = (feedPosts || [])
+    .filter(p => followedAuthors.includes(p.author_id))
+    .slice(0, 3);
 
   return (
     <section role="tabpanel">
@@ -29,14 +32,14 @@ export function AstroTab({ profile, day, follows }) {
         </div>
         <Wheel sky={sky} profile={profile} />
         <div class="moonline">
-          {A.moonLine.pre}<b>{A.moonLine.sign(S[sky.moon])}</b>（<span class="mono">{(sky.mLon % 30).toFixed(0)}°</span>）・{t.phases[phaseIndex(sky.phase)]}{A.moonLine.house}<span class="mono">{r.house + 1}</span>{A.moonLine.houseSuffix}
+          {A.moonLine.pre}<b>{A.moonLine.sign(S[sky.moon])}</b>（<span class="mono">{(sky.mLon % 30).toFixed(0)}°</span>）・{t.phases[phaseIndex(sky.phase)]}{A.moonLine.house(theme)}
         </div>
       </div>
 
       <div class="stack">
         <div class="card">
           <div class="label">{A.keyLabel}</div>
-          <h2>{A.keyTitle(r.house + 1, theme)}</h2>
+          <h2>{A.keyTitle(theme)}</h2>
           <p>{advice}</p>
           <div class="scores">
             {r.scores.map((v, i) => (
@@ -68,13 +71,15 @@ export function AstroTab({ profile, day, follows }) {
           <div class="label">{A.miniFeedLabel}</div>
           <div style="display:grid;gap:8px;margin-top:6px">
             {mini.length ? mini.map(f => {
-              const a = t.authors[f.a];
+              const a = t.authors[f.author_id];
+              if (!a) return null;
+              const isUnread = feedReadIds && !feedReadIds.has(f.id);
               return (
-                <div key={f.title} style="display:flex;gap:10px;align-items:center">
+                <div key={f.id || f.url} style="display:flex;gap:10px;align-items:center">
                   <div class="avatar" style="width:32px;height:32px;font-size:14px">{a.short}</div>
                   <div style="min-width:0;flex:1">
-                    <div style="font-size:14px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{f.title}</div>
-                    <div class="why">{a.name}・{f.when}</div>
+                    <div style={`font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${isUnread ? 'font-weight:700' : 'font-weight:500'}`}>{f.title}</div>
+                    <div class="why">{a.name}・{f.kind === 'weekly' ? t.feed.kinds.weekly : f.kind === 'monthly' ? t.feed.kinds.monthly : f.kind}</div>
                   </div>
                 </div>
               );

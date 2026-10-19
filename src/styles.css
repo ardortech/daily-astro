@@ -333,3 +333,14 @@ input[disabled] { opacity: .5; }
 .gz-grid > div small { font-weight: 400; font-size: 12px; color: var(--muted); margin-left: 4px; }
 .gz-grid-branch { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
 .gz-grid-branch > div { text-align: center; padding: 8px 4px; }
+
+/* Phase 5: update banner, feed posts, version info */
+.update-banner { width: 100%; background: var(--brass); color: var(--surface); border: 0; border-radius: 12px; padding: 10px 16px; font-weight: 700; font-size: 14px; margin-bottom: 10px; }
+.post-row { display: flex; gap: 10px; align-items: start; padding: 8px 0; border-top: 1px solid var(--line); }
+.post-row:first-child { border-top: 0; }
+.post-row .avatar { width: 36px; height: 36px; font-size: 15px; flex: none; }
+.post-title { font-size: 14px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.post-title a { color: var(--ink); text-decoration: none; }
+.post-title .unread { font-weight: 700; }
+.post-date { font-size: 12px; color: var(--muted); }
+.version-info { text-align: center; font-size: 12px; color: var(--muted); padding: 8px 0; }
