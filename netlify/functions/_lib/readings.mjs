@@ -77,11 +77,11 @@ export function templateAstroReading(sun, rising, skyRow) {
   const good = [0, 2, 4].includes(aspect);
   const score = good ? 4 : aspect === 3 || aspect === 6 ? 2 : 3;
   return {
-    headline: `月亮行經第${house + 1}宮（${HOUSES[house]}），${good ? '順利前行' : '留心調整'}`,
-    body: `今天月亮在${SIGNS[skyRow.moon_sign]}座，落入你的第${house + 1}宮，主題是${HOUSES[house]}。月亮與太陽成${ASPECTS[aspect]}，${good ? '心情和目標同步，適合主動出擊。' : '情緒可能有些拉扯，重要決定緩一緩。'}`,
+    headline: `月亮行經${HOUSES[house]}宮，${good ? '順利前行' : '留心調整'}`,
+    body: `今天月亮在${SIGNS[skyRow.moon_sign]}座，落入你的${HOUSES[house]}宮。月亮與太陽成${ASPECTS[aspect]}，${good ? '心情和目標同步，適合主動出擊。' : '情緒可能有些拉扯，重要決定緩一緩。'}`,
     watch_out: good ? '今日無需特別留心。' : '情緒起伏較大，避免衝動決定。',
     scores: [score, Math.max(1, score + (good ? 0 : -1)), score, Math.max(1, score - 1)],
-    what_changed: `月亮從${SIGNS[(skyRow.moon_sign + 11) % 12]}座移入${SIGNS[skyRow.moon_sign]}座，焦點轉向${HOUSES[house]}。`,
+    what_changed: `月亮從${SIGNS[(skyRow.moon_sign + 11) % 12]}座移入${SIGNS[skyRow.moon_sign]}座，焦點轉向${HOUSES[house]}宮。`,
   };
 }
 

@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'preact/hooks';
 import { cityById } from '../astro';
-import { AUTHORS } from '../data/sample.js';
 import { t } from '../i18n';
 import { animalName, dayMasterName } from './labels.js';
 import { Switch } from './Switch.jsx';
 import { isStandalone } from '../lib/platform.js';
 import { canPush, needsHomeScreen, getPermission, subscribePush, unsubscribePush, sendTestPush, syncSubscription, getDiagnostics, lastPushError } from '../lib/push.js';
+import { sync } from '../lib/sync.js';
+
+const AUTHORS_LIST = ['tang', 'mafalda', 'susan'];
 
 export function pushPreview(p, day, prefs) {
   const S = t.settings, r = day.reading, z = day.zodiac;
@@ -27,9 +29,11 @@ export function SettingsTab({ profile: p, day, prefs, setPrefs, follows, setFoll
   const [tapCount, setTapCount] = useState(0);
   const [showDiag, setShowDiag] = useState(false);
   const [diag, setDiag] = useState(null);
+  const [swWaiting, setSwWaiting] = useState(false);
 
   useEffect(() => {
     checkPushState();
+    checkSwUpdate();
   }, []);
 
   async function checkPushState() {
@@ -37,6 +41,30 @@ export function SettingsTab({ profile: p, day, prefs, setPrefs, follows, setFoll
     if (!canPush()) { setPushState('unsupported'); return; }
     const perm = await getPermission();
     setPushState(perm === 'granted' ? 'granted' : perm === 'denied' ? 'denied' : 'default');
+  }
+
+  function checkSwUpdate() {
+    if (!('serviceWorker' in navigator)) return;
+    navigator.serviceWorker.getRegistration('/').then(reg => {
+      if (!reg) return;
+      if (reg.waiting) { setSwWaiting(true); return; }
+      reg.addEventListener('updatefound', () => {
+        const sw = reg.installing;
+        if (!sw) return;
+        sw.addEventListener('statechange', () => {
+          if (sw.state === 'installed' && navigator.serviceWorker.controller) setSwWaiting(true);
+        });
+      });
+    });
+  }
+
+  function handleSwUpdate() {
+    navigator.serviceWorker.getRegistration('/').then(reg => {
+      if (reg?.waiting) {
+        reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+        window.location.reload();
+      }
+    });
   }
 
   async function handleEnable() {
@@ -94,9 +122,28 @@ export function SettingsTab({ profile: p, day, prefs, setPrefs, follows, setFoll
     }
   }
 
+  const setAuthorsPush = v => {
+    const next = { ...prefs, authorsPush: v };
+    setPrefs(next);
+    // Also sync to Supabase
+    import('../lib/supabase.js').then(({ supabase, ensureUser }) => {
+      if (!supabase) return;
+      ensureUser().then(({ id }) => {
+        supabase.from('profiles').update({ authors_push_enabled: v }).eq('user_id', id);
+      });
+    }).catch(() => {});
+  };
+
   return (
     <section role="tabpanel">
       <h2 style="font-size:22px;margin-top:4px">{S.title}</h2>
+
+      {swWaiting && (
+        <button class="update-banner" type="button" onClick={handleSwUpdate}>
+          {t.update.newVersion}
+        </button>
+      )}
+
       <div class="stack">
         <div class="card">
           <div class="label">{S.me}</div>
@@ -137,6 +184,10 @@ export function SettingsTab({ profile: p, day, prefs, setPrefs, follows, setFoll
                 <Switch checked={prefs.zodiacDaily} ariaLabel={S.zodiacDaily} onChange={v => setPrefs({ ...prefs, zodiacDaily: v })} />
               </div>
               <div class="row">
+                <div><b>{S.authorPush}</b><div class="why">{S.authorPushHint}</div></div>
+                <Switch checked={prefs.authorsPush !== false} ariaLabel={S.authorPush} onChange={setAuthorsPush} />
+              </div>
+              <div class="row">
                 <div style="flex:1"><b>{S.time}</b></div>
                 <div style="width:130px">
                   <select value={prefs.pushTime} aria-label={S.time} onChange={e => e.currentTarget.value && setPrefs({ ...prefs, pushTime: e.currentTarget.value })}>
@@ -174,7 +225,7 @@ export function SettingsTab({ profile: p, day, prefs, setPrefs, follows, setFoll
 
         <div class="card">
           <div class="label" style="margin-bottom:4px">{S.following}</div>
-          {AUTHORS.map(({ id }) => {
+          {AUTHORS_LIST.map(id => {
             const a = t.authors[id];
             return (
               <div class="row" key={id}>
@@ -186,6 +237,10 @@ export function SettingsTab({ profile: p, day, prefs, setPrefs, follows, setFoll
         </div>
 
         <p class="note" onClick={handleNoteTap} style="cursor:default">{S.note}</p>
+
+        <div class="version-info">
+          {t.update.version(__APP_VERSION__)}
+        </div>
 
         {showDiag && diag && (
           <div class="card" style="font-size:12px;font-family:var(--f-mono);word-break:break-all">

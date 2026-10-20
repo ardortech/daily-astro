@@ -10,9 +10,7 @@
 // Runs are serialized so a pull can never overtake a pending write.
 import { store, K, DEFAULTS } from './store.js';
 import { deviceTimeZone } from './platform.js';
-import { AUTHORS } from '../data/sample.js';
-
-const AUTHOR_IDS = AUTHORS.map(a => a.id);
+const AUTHOR_IDS = ['tang', 'mafalda', 'susan'];
 let chain = Promise.resolve();
 
 export function sync(mode, onRemote) {
@@ -60,7 +58,7 @@ async function pull(supabase, userId) {
   const followed = new Set(f.data.map(r => r.author_id));
   return {
     profile: fromRow(p.data),
-    prefs: { pushTime: p.data.push_time.slice(0, 5), daily: p.data.daily_enabled, zodiacDaily: p.data.zodiac_daily_enabled ?? true, pushEnabled: p.data.push_enabled ?? false },
+    prefs: { pushTime: p.data.push_time.slice(0, 5), daily: p.data.daily_enabled, zodiacDaily: p.data.zodiac_daily_enabled ?? true, pushEnabled: p.data.push_enabled ?? false, authorsPush: p.data.authors_push_enabled ?? true },
     follows: Object.fromEntries(AUTHOR_IDS.map(a => [a, followed.has(a)])),
   };
 }
@@ -91,6 +89,7 @@ export function toRow(userId, p, prefs = {}) {
     push_time: prefs.pushTime || '07:30',
     daily_enabled: prefs.daily ?? true,
     zodiac_daily_enabled: prefs.zodiacDaily ?? true,
+    authors_push_enabled: prefs.authorsPush ?? true,
     time_zone: deviceTimeZone(),
   };
 }

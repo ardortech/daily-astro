@@ -296,7 +296,7 @@ function testPromptBuilder(question) {
           const zh = name === 'mercury' ? '水星' : name === 'venus' ? '金星' : '火星';
           const base = profile.rising ?? profile.sun;
           const house = (data.sign - base + 12) % 12;
-          lines.push(zh+'在'+SIGNS[data.sign]+'座第'+(house+1)+'宮'+(data.retro ? '（逆行中）' : ''));
+          lines.push(zh+'在'+SIGNS[data.sign]+'座'+HOUSES[house]+'宮'+(data.retro ? '（逆行中）' : ''));
         }
         prompt = lines.join('; ');
       } else if (cls.type === 'reading') {
@@ -304,7 +304,7 @@ function testPromptBuilder(question) {
         const a = almanac(today);
         const base = profile.rising ?? profile.sun;
         const house = (ctx.mSign - base + 12) % 12;
-        prompt = '月亮'+SIGNS[ctx.mSign]+'座第'+(house+1)+'宮';
+        prompt = '月亮'+SIGNS[ctx.mSign]+'座'+HOUSES[house]+'宮';
       } else if (cls.type === 'color') {
         const a = almanac(today);
         const ctx = skyContext(today);

@@ -1,20 +1,21 @@
 import { WUXING_HEX, COLOR_HEX } from '../astro';
-import { AUTHORS, FEED } from '../data/sample.js';
 import { t } from '../i18n';
 import { animalName } from './labels.js';
 import { Stars } from './Stars.jsx';
 import { ZodiacImg } from './ZodiacImg.jsx';
 import { AskEntry } from './AskTab.jsx';
 
-// 首頁: today's 星座 + 生肖 at a glance, lucky items, and what's next.
-export function HomeTab({ profile: p, day, follows, go }) {
+export function HomeTab({ profile: p, day, follows, go, feedPosts, feedReadIds }) {
   const H = t.home, r = day.reading, z = day.zodiac, a = day.alm;
   const [theme, advice] = t.houses[r.house];
   const [relName] = t.relations[z.rel];
   const yi = a.yi, ji = a.ji;
   const lucky = p.wuxing.luckyElement;
   const next = a.goodHours.find(h => h >= day.hour) ?? a.goodHours[0];
-  const latest = FEED.find(f => follows[f.a] && !f.upcoming && f.h < 48);
+
+  // Find the newest unread post from a followed author
+  const latest = (feedPosts || []).find(p => follows[p.author_id] && !(feedReadIds || new Set()).has(p.id));
+
   const yiji = (
     <div class="yiji">
       <div><span class="seal yi">{t.yi}</span>{yi.slice(0, 2).join('・')}</div>
@@ -82,7 +83,7 @@ export function HomeTab({ profile: p, day, follows, go }) {
           <div class="today-row">
             <span class="label">{H.author}</span>
             <span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{latest.title}</span>
-            <a href={AUTHORS.find(x => x.id === latest.a).url} target="_blank" rel="noopener">{H.authorGo}</a>
+            <a href="#" onClick={e => { e.preventDefault(); go('feed'); }}>{H.authorGo}</a>
           </div>
         )}
       </div>

@@ -13,7 +13,7 @@ function templateHeadline(sun, rising, skyRow) {
   const sep = (skyRow.moon_sign - sun + 12) % 12;
   const aspect = Math.min(sep, 12 - sep);
   const good = [0, 2, 4].includes(aspect);
-  return `月亮行經第${house + 1}宮（${HOUSES[house]}），${good ? '順利前行' : '留心調整'}`;
+  return `月亮行經${HOUSES[house]}宮，${good ? '順利前行' : '留心調整'}`;
 }
 
 test('7-day anti-repeat: 牡羊/獅子 headlines differ across a week', () => {
