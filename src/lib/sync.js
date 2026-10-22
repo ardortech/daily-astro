@@ -10,7 +10,14 @@
 // Runs are serialized so a pull can never overtake a pending write.
 import { store, K, DEFAULTS } from './store.js';
 import { deviceTimeZone } from './platform.js';
-const AUTHOR_IDS = ['tang', 'mafalda', 'susan'];
+let _authorIds = null;
+async function authorIds(supabase) {
+  if (_authorIds) return _authorIds;
+  const { data } = await supabase.from('authors').select('id').eq('active', true);
+  _authorIds = data ? data.map(r => r.id) : ['tang', 'mafalda', 'susan', 'taowen'];
+  return _authorIds;
+}
+const FALLBACK_IDS = ['tang', 'mafalda', 'susan', 'taowen'];
 let chain = Promise.resolve();
 
 export function sync(mode, onRemote) {
@@ -33,15 +40,15 @@ async function run(mode, onRemote) {
 
 async function push(supabase, userId) {
   const profile = store.get(K.profile, null);
-  // Nothing to save before onboarding; follows are written together with the profile.
   if (!profile) return store.set(K.syncPending, false);
   const prefs = store.get(K.prefs, DEFAULTS.prefs);
   const follows = store.get(K.follows, DEFAULTS.follows);
   const ok = ({ error }) => { if (error) throw error; };
+  const ids = await authorIds(supabase).catch(() => FALLBACK_IDS);
 
   ok(await supabase.from('profiles').upsert(toRow(userId, profile, prefs)));
-  const on = AUTHOR_IDS.filter(a => follows[a]);
-  const off = AUTHOR_IDS.filter(a => !follows[a]);
+  const on = ids.filter(a => follows[a]);
+  const off = ids.filter(a => !follows[a]);
   if (on.length) ok(await supabase.from('follows').upsert(on.map(author_id => ({ user_id: userId, author_id })), { ignoreDuplicates: true }));
   if (off.length) ok(await supabase.from('follows').delete().eq('user_id', userId).in('author_id', off));
   store.set(K.syncPending, false);
@@ -56,10 +63,11 @@ async function pull(supabase, userId) {
   if (f.error) throw f.error;
   if (!p.data) return null;
   const followed = new Set(f.data.map(r => r.author_id));
+  const ids = await authorIds(supabase).catch(() => FALLBACK_IDS);
   return {
     profile: fromRow(p.data),
     prefs: { pushTime: p.data.push_time.slice(0, 5), daily: p.data.daily_enabled, zodiacDaily: p.data.zodiac_daily_enabled ?? true, pushEnabled: p.data.push_enabled ?? false, authorsPush: p.data.authors_push_enabled ?? true },
-    follows: Object.fromEntries(AUTHOR_IDS.map(a => [a, followed.has(a)])),
+    follows: Object.fromEntries(ids.map(a => [a, followed.has(a)])),
   };
 }
 

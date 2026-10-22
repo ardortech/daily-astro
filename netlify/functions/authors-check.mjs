@@ -3,9 +3,8 @@
 // First run: posts older than 3 days get notified_at = now (no spam).
 import { createClient } from '@supabase/supabase-js';
 import webpush from 'web-push';
-import { politeGet, parseTang, parseMafalda, parseSusan } from './_lib/author-parsers.mjs';
+import { politeGet, parserFor } from './_lib/author-parsers.mjs';
 
-const PARSERS = { tang: parseTang, mafalda: parseMafalda, susan: parseSusan };
 const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000;
 const STALE_DAYS = { weekly: 10, monthly: 40, both: 10 };
 
@@ -25,7 +24,6 @@ export default async () => {
   const hasVapid = vapidPublic && vapidPrivate && vapidSubject;
   if (hasVapid) webpush.setVapidDetails(vapidSubject, vapidPublic, vapidPrivate);
 
-  // Get active authors
   const { data: authors, error: authErr } = await supabase.from('authors').select('*').eq('active', true);
   if (authErr || !authors?.length) {
     console.warn('authors-check: no active authors', authErr);
@@ -35,26 +33,42 @@ export default async () => {
   const summary = [];
 
   for (const author of authors) {
-    const parser = PARSERS[author.id];
-    if (!parser) { summary.push(`${author.id} skip=no-parser`); continue; }
+    const parser = parserFor(author);
+    if (!parser) {
+      console.warn(`authors-check: ${author.id} skip — no parser for source_type=${author.source_type}`);
+      summary.push(`${author.id} skip=no-parser`);
+      continue;
+    }
 
     let newCount = 0, errorMsg = null;
     try {
-      const { status, text } = await politeGet(author.feed_url);
+      const feedUrl = author.source_type === 'youtube'
+        ? `https://www.youtube.com/feeds/videos.xml?channel_id=${author.source_id}`
+        : author.feed_url;
+
+      const { status, text, contentType, bytes } = await politeGet(feedUrl);
+      console.log(`authors-check: ${author.id} HTTP ${status} content-type=${contentType} bytes=${bytes}`);
+
       if (status === 304) {
         await supabase.from('authors').update({ last_checked_at: now.toISOString() }).eq('id', author.id);
         summary.push(`${author.id} new=0 (304)`);
         continue;
       }
-      if (!text || status >= 400) throw new Error(`HTTP ${status}`);
-
-      const posts = parser(text);
-      if (posts.length === 0) {
-        console.warn(`authors-check: ${author.id} parser returned 0 items`);
+      if (!text || status >= 400) {
+        const preview = (text || '').slice(0, 300);
+        console.warn(`authors-check: ${author.id} bad response: HTTP ${status} preview=${preview}`);
+        throw new Error(`HTTP ${status}`);
       }
 
-      // Dedupe: only insert posts whose url isn't already stored
-      for (const post of posts) {
+      const allParsed = parser(text);
+      console.log(`authors-check: ${author.id} parsed=${allParsed.length} items`);
+
+      if (allParsed.length === 0) {
+        const preview = text.slice(0, 300).replace(/\s+/g, ' ');
+        console.warn(`authors-check: ${author.id} parser returned 0 items. preview=${preview}`);
+      }
+
+      for (const post of allParsed) {
         const isOld = (now - new Date(post.published_at)) > THREE_DAYS_MS;
         const { data: inserted, error: insErr } = await supabase
           .from('author_posts')
@@ -73,13 +87,11 @@ export default async () => {
           continue;
         }
 
-        // If newly inserted (not a duplicate) and not old, it needs notification
         if (inserted?.length && !inserted[0].notified_at) {
           newCount++;
         }
       }
 
-      // Check staleness
       const staleDays = STALE_DAYS[author.cadence] || 10;
       if (author.last_found_at && (now - new Date(author.last_found_at)) > staleDays * 24 * 60 * 60 * 1000) {
         console.warn(`authors-check: ${author.id} stale (no new post for >${staleDays} days)`);
@@ -112,7 +124,7 @@ export default async () => {
     errors = pushResult.errors;
   }
 
-  const log = `authors-check: ${summary.join(' ')} pushed=${pushed} held=${held} errors=${errors}`;
+  const log = `authors-check: ${summary.join(' | ')} pushed=${pushed} held=${held} errors=${errors}`;
   console.log(log);
   return new Response(JSON.stringify({ summary, pushed, held, errors }), {
     headers: { 'content-type': 'application/json' },
@@ -120,7 +132,6 @@ export default async () => {
 };
 
 async function sendAuthorPushes(supabase, now) {
-  // Find posts that need notification (notified_at is null)
   const { data: posts } = await supabase
     .from('author_posts')
     .select('id, author_id, title, url')
@@ -129,21 +140,18 @@ async function sendAuthorPushes(supabase, now) {
 
   if (!posts?.length) return { pushed: 0, held: 0, errors: 0 };
 
-  // Get author names
   const { data: authorRows } = await supabase.from('authors').select('id, name_zh');
   const authorNames = Object.fromEntries((authorRows || []).map(a => [a.id, a.name_zh]));
 
   let pushed = 0, held = 0, errors = 0;
 
   for (const post of posts) {
-    // Find followers of this author with push enabled + authors_push_enabled
     const { data: followers } = await supabase
       .from('follows')
       .select('user_id, profiles!inner(push_enabled, authors_push_enabled, time_zone, push_time)')
       .eq('author_id', post.author_id);
 
     if (!followers?.length) {
-      // No followers, mark as notified so we don't keep checking
       await supabase.from('author_posts').update({ notified_at: now.toISOString() }).eq('id', post.id);
       continue;
     }
@@ -153,15 +161,9 @@ async function sendAuthorPushes(supabase, now) {
       const p = f.profiles;
       if (!p.push_enabled || !p.authors_push_enabled) continue;
 
-      // Quiet hours: 22:00–07:00 in user's time zone
       const localHour = localHourIn(now, p.time_zone);
-      if (localHour >= 22 || localHour < 7) {
-        held++;
-        // Will be picked up on next run when it's no longer quiet hours
-        continue;
-      }
+      if (localHour >= 22 || localHour < 7) { held++; continue; }
 
-      // Send push
       const { data: subs } = await supabase
         .from('push_subscriptions')
         .select('id, endpoint, p256dh, auth')
@@ -195,8 +197,6 @@ async function sendAuthorPushes(supabase, now) {
       }
     }
 
-    // Mark as notified if all non-quiet-hours users have been processed
-    // (quiet-hours users will get it on next run when their local time is past 07:00)
     if (anySent || held === 0) {
       await supabase.from('author_posts').update({ notified_at: now.toISOString() }).eq('id', post.id);
     }
