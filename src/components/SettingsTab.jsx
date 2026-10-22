@@ -7,8 +7,6 @@ import { isStandalone } from '../lib/platform.js';
 import { canPush, needsHomeScreen, getPermission, subscribePush, unsubscribePush, sendTestPush, syncSubscription, getDiagnostics, lastPushError } from '../lib/push.js';
 import { sync } from '../lib/sync.js';
 
-const AUTHORS_LIST = ['tang', 'mafalda', 'susan'];
-
 export function pushPreview(p, day, prefs) {
   const S = t.settings, r = day.reading, z = day.zodiac;
   const lines = [];
@@ -20,7 +18,7 @@ export function pushPreview(p, day, prefs) {
 const TIMES = [];
 for (let h = 6; h <= 10; h++) for (let m = 0; m < 60; m += 15) TIMES.push(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`);
 
-export function SettingsTab({ profile: p, day, prefs, setPrefs, follows, setFollow, onEdit, onShowGuide, toast }) {
+export function SettingsTab({ profile: p, day, prefs, setPrefs, follows, setFollow, onEdit, onShowGuide, toast, feedAuthors }) {
   const S = t.settings;
   const pv = pushPreview(p, day, prefs);
   const [pushState, setPushState] = useState('loading');
@@ -225,11 +223,15 @@ export function SettingsTab({ profile: p, day, prefs, setPrefs, follows, setFoll
 
         <div class="card">
           <div class="label" style="margin-bottom:4px">{S.following}</div>
-          {AUTHORS_LIST.map(id => {
-            const a = t.authors[id];
+          {(feedAuthors || []).map(row => {
+            const id = row.id;
+            const a = t.authors[id] || { name: row.name_zh, where: row.source_label, cadence: row.cadence };
             return (
               <div class="row" key={id}>
-                <div><b>{a.name}</b><div class="why">{a.where}・{a.cadence}</div></div>
+                <div>
+                  <div style="display:flex;align-items:center;gap:6px"><b>{a.name}</b>{row.category && <span class="cat-tag">{t.categories[row.category] || row.category}</span>}</div>
+                  <div class="why">{a.where}・{a.cadence}</div>
+                </div>
                 <Switch checked={!!follows[id]} ariaLabel={S.followAria(a.name)} onChange={v => { setFollow(id, v); toast(v ? S.followed : S.unfollowed); }} />
               </div>
             );

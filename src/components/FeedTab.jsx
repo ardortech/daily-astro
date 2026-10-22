@@ -1,9 +1,8 @@
 import { useEffect, useState } from 'preact/hooks';
 import { t } from '../i18n';
 
-const AUTHORS_LIST = ['tang', 'mafalda', 'susan'];
-
 export function useFeedData(follows) {
+  const [authors, setAuthors] = useState([]);
   const [posts, setPosts] = useState([]);
   const [readIds, setReadIds] = useState(new Set());
   const [loading, setLoading] = useState(true);
@@ -16,17 +15,18 @@ export function useFeedData(follows) {
         if (!supabase) { setLoading(false); return; }
         const { id } = await ensureUser();
 
-        const [postsRes, readsRes] = await Promise.all([
+        const [authorsRes, postsRes, readsRes] = await Promise.all([
+          supabase.from('authors').select('id, name_zh, source_label, cadence, category, active').eq('active', true),
           supabase.from('author_posts')
             .select('id, author_id, url, title, published_at, kind')
-            .in('author_id', AUTHORS_LIST)
             .order('published_at', { ascending: false })
-            .limit(30),
+            .limit(50),
           supabase.from('post_reads')
             .select('post_id')
             .eq('user_id', id),
         ]);
         if (cancelled) return;
+        setAuthors(authorsRes.data || []);
         setPosts(postsRes.data || []);
         setReadIds(new Set((readsRes.data || []).map(r => r.post_id)));
       } catch (err) {
@@ -47,7 +47,7 @@ export function useFeedData(follows) {
     } catch {}
   };
 
-  return { posts, readIds, loading, markRead };
+  return { authors, posts, readIds, loading, markRead };
 }
 
 export function newCount(follows, posts, readIds) {
@@ -55,11 +55,16 @@ export function newCount(follows, posts, readIds) {
   return posts.filter(p => follows[p.author_id] && !readIds.has(p.id)).length;
 }
 
-export function FeedTab({ follows, filter, setFilter, posts, readIds, markRead }) {
+export function FeedTab({ follows, filter, setFilter, posts, readIds, markRead, authors }) {
+  const authorList = (authors || []).filter(a => a.active !== false);
+  const authorIds = authorList.map(a => a.id);
   const items = (posts || []).filter(p => follows[p.author_id] && (filter === 'all' || p.author_id === filter));
-  const filters = [['all', t.feed.all], ...AUTHORS_LIST.map(id => [id, t.authors[id].name])];
 
-  // Group: latest 3 per author
+  const filters = [['all', t.feed.all], ...authorIds.filter(id => follows[id]).map(id => {
+    const a = t.authors[id];
+    return a ? [id, a.name] : [id, id];
+  })];
+
   const byAuthor = new Map();
   for (const p of items) {
     const list = byAuthor.get(p.author_id) || [];
@@ -72,8 +77,9 @@ export function FeedTab({ follows, filter, setFilter, posts, readIds, markRead }
     window.open(post.url, '_blank', 'noopener');
   };
 
-  // If no Supabase data, show the static placeholder
-  const hasPosts = items.length > 0;
+  const visibleAuthors = authorIds.filter(id =>
+    follows[id] && (filter === 'all' || filter === id)
+  );
 
   return (
     <section role="tabpanel">
@@ -85,37 +91,40 @@ export function FeedTab({ follows, filter, setFilter, posts, readIds, markRead }
         ))}
       </div>
       <div class="stack">
-        {hasPosts ? (
-          AUTHORS_LIST.filter(id => filter === 'all' || filter === id).map(authorId => {
-            const authorPosts = byAuthor.get(authorId);
-            if (!authorPosts?.length) return null;
-            if (!follows[authorId]) return null;
-            const a = t.authors[authorId];
-            return (
-              <div key={authorId} class="card" style="padding:12px 16px">
-                <div class="meta" style="margin-bottom:8px">
-                  <div class="avatar">{a.short}</div>
-                  <div>
-                    <b style="color:var(--ink)">{a.name}</b>
-                    <div class="why">{a.where}・{a.cadence}</div>
+        {visibleAuthors.length > 0 ? visibleAuthors.map(authorId => {
+          const authorPosts = byAuthor.get(authorId);
+          const a = t.authors[authorId];
+          const authorRow = authorList.find(r => r.id === authorId);
+          const cat = authorRow?.category;
+          return (
+            <div key={authorId} class="card" style="padding:12px 16px">
+              <div class="meta" style="margin-bottom:8px">
+                <div class="avatar">{a ? a.short : authorId[0]}</div>
+                <div style="flex:1;min-width:0">
+                  <div style="display:flex;align-items:center;gap:6px">
+                    <b style="color:var(--ink)">{a ? a.name : authorId}</b>
+                    {cat && <span class="cat-tag">{t.categories[cat] || cat}</span>}
                   </div>
+                  <div class="why">{a ? `${a.where}・${a.cadence}` : ''}</div>
                 </div>
-                {authorPosts.map(p => {
-                  const isUnread = !readIds.has(p.id);
-                  return (
-                    <div key={p.id} class="post-row" role="button" tabIndex={0} onClick={() => handlePostClick(p)} onKeyDown={e => e.key === 'Enter' && handlePostClick(p)}>
-                      <div style="min-width:0;flex:1">
-                        <span class={`tag ${isUnread ? 'new' : ''}`}>{isUnread ? t.feed.new : t.feed.kinds[p.kind] || p.kind}</span>
-                        <span class="post-title">{p.title}</span>
-                      </div>
-                      <span class="post-date">{formatDate(p.published_at)}</span>
-                    </div>
-                  );
-                })}
               </div>
-            );
-          })
-        ) : (
+              {authorPosts?.length ? authorPosts.map(p => {
+                const isUnread = !readIds.has(p.id);
+                return (
+                  <div key={p.id} class="post-row" role="button" tabIndex={0} onClick={() => handlePostClick(p)} onKeyDown={e => e.key === 'Enter' && handlePostClick(p)}>
+                    <div style="min-width:0;flex:1">
+                      <span class={`tag ${isUnread ? 'new' : ''}`}>{isUnread ? t.feed.new : t.feed.kinds[p.kind] || p.kind}</span>
+                      <span class="post-title">{p.title}</span>
+                    </div>
+                    <span class="post-date">{formatDate(p.published_at)}</span>
+                  </div>
+                );
+              }) : (
+                <p class="why" style="text-align:center;padding:8px 0">{t.feed.noPosts}</p>
+              )}
+            </div>
+          );
+        }) : (
           <p class="why" style="text-align:center;padding:24px 0">{t.feed.footnote}</p>
         )}
         <p class="note">{t.feed.copyright}</p>

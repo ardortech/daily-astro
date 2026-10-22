@@ -103,8 +103,8 @@ export function App() {
     {view === 'home' && <HomeTab profile={profile} day={day} follows={follows} go={show} feedPosts={feed.posts} feedReadIds={feed.readIds} />}
     {view === 'astro' && <AstroTab profile={profile} day={day} follows={follows} feedPosts={feed.posts} feedReadIds={feed.readIds} />}
     {view === 'zodiac' && <ZodiacTab profile={profile} day={day} />}
-    {view === 'feed' && <FeedTab follows={follows} filter={filter} setFilter={setFilter} posts={feed.posts} readIds={feed.readIds} markRead={feed.markRead} />}
-    {view === 'settings' && <SettingsTab profile={profile} day={day} prefs={prefs} setPrefs={setPrefs} follows={follows} setFollow={setFollow} onEdit={() => show('edit')} onShowGuide={() => show('install-guide')} toast={toast} feedPosts={feed.posts} feedReadIds={feed.readIds} />}
+    {view === 'feed' && <FeedTab follows={follows} filter={filter} setFilter={setFilter} posts={feed.posts} readIds={feed.readIds} markRead={feed.markRead} authors={feed.authors} />}
+    {view === 'settings' && <SettingsTab profile={profile} day={day} prefs={prefs} setPrefs={setPrefs} follows={follows} setFollow={setFollow} onEdit={() => show('edit')} onShowGuide={() => show('install-guide')} toast={toast} feedPosts={feed.posts} feedReadIds={feed.readIds} feedAuthors={feed.authors} />}
   </>;
 
   return (

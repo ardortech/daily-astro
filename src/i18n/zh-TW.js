@@ -292,6 +292,7 @@ export default {
     upcomingNote: '發布後會推播通知你',
     watch: '到原頻道觀看 →',
     footnote: '還沒有找到新的更新，請稍後再試。',
+    noPosts: '尚未抓到最新文章',
     copyright: '內容版權屬各老師所有，吉光僅提供更新通知與連結。',
   },
 
@@ -299,7 +300,9 @@ export default {
     tang: { name: '唐綺陽', short: '唐', where: 'YouTube・唐綺陽官方專屬頻道', cadence: '週運・月運' },
     mafalda: { name: '瑪法達', short: '瑪', where: '鏡週刊・瑪法達星座運勢', cadence: '週運（每週三）' },
     susan: { name: 'Susan Miller', short: 'S', where: 'Astrology Zone', cadence: '月運' },
+    taowen: { name: '陶文', short: '陶', where: '飛碟聯播網《生活同樂會》', cadence: '月運' },
   },
+  categories: { '星座': '星座', '生肖': '生肖' },
 
   push: {
     sectionTitle: '通知',

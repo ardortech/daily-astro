@@ -15,7 +15,7 @@ export const K = {
 
 // Used until the user changes them (they aren't written to the cache before that).
 export const DEFAULTS = {
-  follows: { tang: true, mafalda: true, susan: true },
+  follows: { tang: true, mafalda: true, susan: true, taowen: true },
   prefs: { daily: true, zodiacDaily: true, pushTime: '07:30', pushEnabled: false, authorsPush: true },
 };
 

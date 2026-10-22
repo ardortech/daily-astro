@@ -1,6 +1,8 @@
-// Source parsers for the three authors. Each exports a function that takes
-// the fetched text (XML or HTML) and returns an array of { url, title, published_at, kind }.
-// A parser that fails or returns 0 items logs a warning; it never throws.
+// Generic + custom author parsers. Each returns [{ url, title, published_at, kind }].
+// source_type dispatch:
+//   'youtube' → parseYouTube (shared for any YouTube channel, filtered by author.keywords)
+//   'rss'     → parseRSS     (generic RSS/Atom, filtered by author.keywords)
+//   'custom'  → CUSTOM_PARSERS[author.id]
 
 const USER_AGENT = 'JiguangBot/1.0 (+https://astro.klchang.com.tw)';
 
@@ -14,24 +16,30 @@ export async function politeGet(url) {
   if (cached?.lastModified) headers['If-Modified-Since'] = cached.lastModified;
 
   const res = await fetch(url, { headers });
-  if (res.status === 304) return { status: 304, text: null };
+  const ct = res.headers.get('content-type') || '';
+  if (res.status === 304) return { status: 304, text: null, contentType: ct, bytes: 0 };
   const text = await res.text();
   etags.set(url, {
     etag: res.headers.get('etag') || null,
     lastModified: res.headers.get('last-modified') || null,
   });
-  return { status: res.status, text };
+  return { status: res.status, text, contentType: ct, bytes: text.length };
 }
 
-// ---- 唐綺陽 (YouTube RSS) ----
-// Keywords that indicate a horoscope forecast video
-const TANG_WEEKLY_RE = /週運|本週|星座運勢週|星座週報|一週/;
-const TANG_MONTHLY_RE = /月運|月份|月星座/;
-const TANG_HOROSCOPE_RE = /週運|本週|星座運勢|月運|月份|星座週報|一週|運勢/;
+// ---- Dispatch by source_type ----
+export function parserFor(author) {
+  if (author.source_type === 'youtube') return text => parseYouTube(text, author);
+  if (author.source_type === 'rss') return text => parseRSS(text, author);
+  return CUSTOM_PARSERS[author.id] || null;
+}
 
-export function parseTang(xml) {
+// ---- Generic YouTube RSS parser ----
+const WEEKLY_RE = /週運|本週|星座運勢週|星座週報|一週/;
+const MONTHLY_RE = /月運|月份|月星座|月份.*排行/;
+
+export function parseYouTube(xml, author) {
   const entries = [];
-  // YouTube RSS uses Atom <entry> elements
+  const kw = (author.keywords || []).map(k => k.toLowerCase());
   const entryRe = /<entry>([\s\S]*?)<\/entry>/g;
   let m;
   while ((m = entryRe.exec(xml)) !== null) {
@@ -41,12 +49,11 @@ export function parseTang(xml) {
     const published = xmlText(block, 'published') || xmlText(block, 'updated');
     if (!title || !url) continue;
 
-    // Only keep horoscope-related videos
-    if (!TANG_HOROSCOPE_RE.test(title)) continue;
+    if (kw.length && !kw.some(k => title.toLowerCase().includes(k))) continue;
 
     let kind = 'other';
-    if (TANG_MONTHLY_RE.test(title)) kind = 'monthly';
-    else if (TANG_WEEKLY_RE.test(title)) kind = 'weekly';
+    if (MONTHLY_RE.test(title)) kind = 'monthly';
+    else if (WEEKLY_RE.test(title)) kind = 'weekly';
 
     entries.push({
       url,
@@ -58,18 +65,49 @@ export function parseTang(xml) {
   return entries;
 }
 
-// ---- 瑪法達 (鏡週刊 author page HTML) ----
-// The author page lists articles as JSON-LD or as HTML article cards.
-// We parse <a> links that match the article URL pattern.
-const MAFALDA_ARTICLE_RE = /\/story\/[^"'\s]+/g;
+// ---- Generic RSS/Atom parser ----
+export function parseRSS(xml, author) {
+  const entries = [];
+  const kw = (author.keywords || []).map(k => k.toLowerCase());
+
+  // Try Atom <entry> first, then RSS <item>
+  const isAtom = /<entry>/i.test(xml);
+  const tagRe = isAtom ? /<entry>([\s\S]*?)<\/entry>/g : /<item>([\s\S]*?)<\/item>/g;
+  let m;
+  while ((m = tagRe.exec(xml)) !== null) {
+    const block = m[1];
+    const title = xmlText(block, 'title');
+    const url = isAtom
+      ? (xmlAttr(block, 'link', 'href') || xmlText(block, 'link'))
+      : (xmlText(block, 'link') || xmlText(block, 'guid'));
+    const published = xmlText(block, 'published') || xmlText(block, 'updated')
+      || xmlText(block, 'pubDate') || xmlText(block, 'dc:date');
+    if (!title || !url) continue;
+
+    if (kw.length && !kw.some(k => title.toLowerCase().includes(k))) continue;
+
+    let kind = 'other';
+    if (MONTHLY_RE.test(title)) kind = 'monthly';
+    else if (WEEKLY_RE.test(title)) kind = 'weekly';
+
+    entries.push({
+      url,
+      title: title.trim().slice(0, 200),
+      published_at: published ? new Date(published).toISOString() : new Date().toISOString(),
+      kind,
+    });
+  }
+  return entries;
+}
+
+// ---- Custom parsers (瑪法達, Susan Miller) ----
+
+// 瑪法達 (鏡週刊 author page HTML)
 const MAFALDA_TITLE_RE = /瑪法達.*?星座運勢/;
 
 export function parseMafalda(html) {
   const entries = [];
   const seen = new Set();
-
-  // Try to find structured article data first (JSON-LD or meta)
-  // Fall back to link + text extraction
   const articleRe = /<a[^>]*href="(\/story\/[^"]+)"[^>]*>([\s\S]*?)<\/a>/gi;
   let m;
   while ((m = articleRe.exec(html)) !== null) {
@@ -78,11 +116,9 @@ export function parseMafalda(html) {
     if (seen.has(url)) continue;
     seen.add(url);
 
-    // Extract visible text from the link
     const rawText = m[2].replace(/<[^>]+>/g, '').trim();
     if (!rawText || !MAFALDA_TITLE_RE.test(rawText)) continue;
 
-    // Extract date range from title like "瑪法達星座運勢 10.14～10.20"
     const dateMatch = rawText.match(/(\d{1,2})\.(\d{1,2})[～~-](\d{1,2})\.(\d{1,2})/);
     let published_at;
     if (dateMatch) {
@@ -95,27 +131,17 @@ export function parseMafalda(html) {
       published_at = new Date().toISOString();
     }
 
-    entries.push({
-      url,
-      title: rawText.slice(0, 120),
-      published_at,
-      kind: 'weekly',
-    });
+    entries.push({ url, title: rawText.slice(0, 120), published_at, kind: 'weekly' });
   }
-
   return entries;
 }
 
-// ---- Susan Miller (Astrology Zone) ----
-// We check the horoscopes page for the current month's forecast.
-// Susan updates once per month; we detect the month in the page title/heading.
+// Susan Miller (Astrology Zone)
 const MONTH_NAMES = ['january', 'february', 'march', 'april', 'may', 'june',
   'july', 'august', 'september', 'october', 'november', 'december'];
 
 export function parseSusan(html) {
   const entries = [];
-
-  // Look for "Your <Month> Horoscope" pattern
   const monthRe = /your\s+(january|february|march|april|may|june|july|august|september|october|november|december)\s+(\d{4})?\s*horoscope/gi;
   let m;
   const seen = new Set();
@@ -138,7 +164,6 @@ export function parseSusan(html) {
     });
   }
 
-  // If no match from regex, try to detect from meta or heading
   if (entries.length === 0) {
     const titleMatch = html.match(/<title[^>]*>([^<]*horoscope[^<]*)<\/title>/i) ||
                         html.match(/<h1[^>]*>([^<]*horoscope[^<]*)<\/h1>/i);
@@ -159,9 +184,13 @@ export function parseSusan(html) {
       }
     }
   }
-
   return entries;
 }
+
+const CUSTOM_PARSERS = { mafalda: parseMafalda, susan: parseSusan };
+
+// Also export old names so existing tests still import them
+export { parseYouTube as parseTang };
 
 // ---- Helpers ----
 function xmlText(xml, tag) {
