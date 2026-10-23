@@ -18,7 +18,7 @@ export function pushPreview(p, day, prefs) {
 const TIMES = [];
 for (let h = 6; h <= 10; h++) for (let m = 0; m < 60; m += 15) TIMES.push(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`);
 
-export function SettingsTab({ profile: p, day, prefs, setPrefs, follows, setFollow, onEdit, onShowGuide, toast, feedAuthors }) {
+export function SettingsTab({ profile: p, day, prefs, setPrefs, follows, setFollow, onEdit, onShowGuide, toast, feedAuthors, feedLoading, feedError }) {
   const S = t.settings;
   const pv = pushPreview(p, day, prefs);
   const [pushState, setPushState] = useState('loading');
@@ -223,7 +223,9 @@ export function SettingsTab({ profile: p, day, prefs, setPrefs, follows, setFoll
 
         <div class="card">
           <div class="label" style="margin-bottom:4px">{S.following}</div>
-          {(feedAuthors || []).map(row => {
+          {feedLoading && <div class="why" style="padding:8px 0">{t.feed.authorsLoading}</div>}
+          {!feedLoading && feedError && <div class="why" style="padding:8px 0">{t.feed.authorsError}</div>}
+          {!feedLoading && !feedError && (feedAuthors || []).map(row => {
             const id = row.id;
             const a = t.authors[id] || { name: row.name_zh, where: row.source_label, cadence: row.cadence };
             return (
