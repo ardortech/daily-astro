@@ -293,6 +293,8 @@ export default {
     watch: '到原頻道觀看 →',
     footnote: '還沒有找到新的更新，請稍後再試。',
     noPosts: '尚未抓到最新文章',
+    authorsLoading: '載入老師列表⋯',
+    authorsError: '無法載入老師列表，請稍後再試。',
     copyright: '內容版權屬各老師所有，吉光僅提供更新通知與連結。',
   },
 
@@ -339,7 +341,6 @@ export default {
     zodiacDailyHint: '今日沖合、五行補色、宜忌',
     time: '推送時間',
     following: '追蹤的老師',
-    followingEmpty: '老師名單載入中⋯',
     followAria: name => `追蹤${name}`,
     enable: '開啟通知',
     authorPush: '名師更新通知',

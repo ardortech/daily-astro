@@ -6,6 +6,7 @@ export function useFeedData(follows) {
   const [posts, setPosts] = useState([]);
   const [readIds, setReadIds] = useState(new Set());
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -31,6 +32,7 @@ export function useFeedData(follows) {
         setReadIds(new Set((readsRes.data || []).map(r => r.post_id)));
       } catch (err) {
         console.warn('feed: load failed', err);
+        if (!cancelled) setError(err);
       }
       setLoading(false);
     })();
@@ -47,7 +49,7 @@ export function useFeedData(follows) {
     } catch {}
   };
 
-  return { authors, posts, readIds, loading, markRead };
+  return { authors, posts, readIds, loading, error, markRead };
 }
 
 export function newCount(follows, posts, readIds) {
