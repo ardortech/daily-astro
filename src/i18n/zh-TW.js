@@ -339,6 +339,7 @@ export default {
     zodiacDailyHint: '今日沖合、五行補色、宜忌',
     time: '推送時間',
     following: '追蹤的老師',
+    followingEmpty: '老師名單載入中⋯',
     followAria: name => `追蹤${name}`,
     enable: '開啟通知',
     authorPush: '名師更新通知',

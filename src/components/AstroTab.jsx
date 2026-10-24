@@ -1,5 +1,6 @@
 import { GLYPH, phaseIndex, COLOR_HEX } from '../astro';
 import { t } from '../i18n';
+import { useDailyReading } from '../lib/readings.js';
 import { Stars } from './Stars.jsx';
 import { Wheel } from './Wheel.jsx';
 
@@ -10,6 +11,7 @@ export function AstroTab({ profile, day, follows, feedPosts, feedReadIds }) {
   const A = t.astro, S = t.signs, r = day.reading, sky = day.sky;
   const [theme, advice] = t.houses[r.house];
   const [aspName, aspText] = t.aspects[r.aspect];
+  const ai = useDailyReading(day.date, 'astro', profile);
 
   const followedAuthors = Object.keys(follows).filter(id => follows[id]);
   const mini = (feedPosts || [])
@@ -39,10 +41,10 @@ export function AstroTab({ profile, day, follows, feedPosts, feedReadIds }) {
       <div class="stack">
         <div class="card">
           <div class="label">{A.keyLabel}</div>
-          <h2>{A.keyTitle(theme)}</h2>
-          <p>{advice}</p>
+          <h2>{ai?.headline || A.keyTitle(theme)}</h2>
+          <p>{ai?.body || advice}</p>
           <div class="scores">
-            {r.scores.map((v, i) => (
+            {(ai?.scores || r.scores).map((v, i) => (
               <div key={i}><span class="label">{t.scoreLabels[i]}</span><Stars label={t.scoreLabels[i]} value={v} /></div>
             ))}
           </div>
@@ -50,7 +52,7 @@ export function AstroTab({ profile, day, follows, feedPosts, feedReadIds }) {
 
         <div class="card watch">
           <div class="label">{A.watchLabel}</div>
-          <p>{A.watchBody(aspName, aspText)}</p>
+          <p>{ai?.watch_out || A.watchBody(aspName, aspText)}</p>
         </div>
 
         <div class="lucky">

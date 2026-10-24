@@ -223,7 +223,7 @@ export function SettingsTab({ profile: p, day, prefs, setPrefs, follows, setFoll
 
         <div class="card">
           <div class="label" style="margin-bottom:4px">{S.following}</div>
-          {(feedAuthors || []).map(row => {
+          {(feedAuthors || []).length ? (feedAuthors || []).map(row => {
             const id = row.id;
             const a = t.authors[id] || { name: row.name_zh, where: row.source_label, cadence: row.cadence };
             return (
@@ -235,7 +235,7 @@ export function SettingsTab({ profile: p, day, prefs, setPrefs, follows, setFoll
                 <Switch checked={!!follows[id]} ariaLabel={S.followAria(a.name)} onChange={v => { setFollow(id, v); toast(v ? S.followed : S.unfollowed); }} />
               </div>
             );
-          })}
+          }) : <p class="why">{S.followingEmpty}</p>}
         </div>
 
         <p class="note" onClick={handleNoteTap} style="cursor:default">{S.note}</p>
