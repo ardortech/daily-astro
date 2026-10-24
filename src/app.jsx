@@ -7,7 +7,7 @@ import { t } from './i18n';
 import { HomeTab } from './components/HomeTab.jsx';
 import { AstroTab } from './components/AstroTab.jsx';
 import { ZodiacTab } from './components/ZodiacTab.jsx';
-import { FeedTab, useFeedData, newCount } from './components/FeedTab.jsx';
+import { FeedTab, useFeedData, newCount, groupPosts } from './components/FeedTab.jsx';
 import { SettingsTab } from './components/SettingsTab.jsx';
 import { BirthForm } from './components/BirthForm.jsx';
 import { Reveal } from './components/Reveal.jsx';
@@ -43,6 +43,7 @@ export function App() {
 
   const [askQ, setAskQ] = useState(null);
   const feed = useFeedData(follows);
+  const grouped = useMemo(() => groupPosts(feed.posts, profile?.sun), [feed.posts, profile?.sun]);
 
   const toast = msg => {
     setToastMsg(msg);
@@ -100,11 +101,11 @@ export function App() {
   else if (view === 'install-guide') body = <section><div class="card" style="margin-top:14px"><h2>{t.install.title}</h2><GuideContent toast={toast} /><div style="margin-top:16px;text-align:center"><button class="chip-btn" type="button" onClick={() => show('settings')}>{t.app.back}</button></div></div></section>;
   else body = <>
     <InstallGuide toast={toast} />
-    {view === 'home' && <HomeTab profile={profile} day={day} follows={follows} go={show} feedPosts={feed.posts} feedReadIds={feed.readIds} />}
-    {view === 'astro' && <AstroTab profile={profile} day={day} follows={follows} feedPosts={feed.posts} feedReadIds={feed.readIds} />}
+    {view === 'home' && <HomeTab profile={profile} day={day} follows={follows} go={show} feedPosts={grouped} feedReadIds={feed.readIds} />}
+    {view === 'astro' && <AstroTab profile={profile} day={day} follows={follows} feedPosts={grouped} feedReadIds={feed.readIds} />}
     {view === 'zodiac' && <ZodiacTab profile={profile} day={day} />}
-    {view === 'feed' && <FeedTab follows={follows} filter={filter} setFilter={setFilter} posts={feed.posts} readIds={feed.readIds} markRead={feed.markRead} authors={feed.authors} />}
-    {view === 'settings' && <SettingsTab profile={profile} day={day} prefs={prefs} setPrefs={setPrefs} follows={follows} setFollow={setFollow} onEdit={() => show('edit')} onShowGuide={() => show('install-guide')} toast={toast} feedPosts={feed.posts} feedReadIds={feed.readIds} feedAuthors={feed.authors} feedLoading={feed.loading} feedError={feed.error} />}
+    {view === 'feed' && <FeedTab follows={follows} filter={filter} setFilter={setFilter} posts={grouped} readIds={feed.readIds} markRead={feed.markRead} authors={feed.authors} />}
+    {view === 'settings' && <SettingsTab profile={profile} day={day} prefs={prefs} setPrefs={setPrefs} follows={follows} setFollow={setFollow} onEdit={() => show('edit')} onShowGuide={() => show('install-guide')} toast={toast} />}
   </>;
 
   return (
@@ -117,7 +118,7 @@ export function App() {
         </header>
         {body}
       </div>
-      {tabbed && <TabBar tab={view} onSelect={show} badge={newCount(follows, feed.posts, feed.readIds)} />}
+      {tabbed && <TabBar tab={view} onSelect={show} badge={newCount(follows, grouped, feed.readIds)} />}
       <Toast msg={toastMsg} />
     </>
   );

@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'preact/hooks';
 import { t } from '../i18n';
+import { groupPosts, newCount, cleanTitle } from '../lib/feed-utils.js';
+export { groupPosts, newCount, cleanTitle };
 
 export function useFeedData(follows) {
   const [authors, setAuthors] = useState([]);
@@ -52,11 +54,6 @@ export function useFeedData(follows) {
   return { authors, posts, readIds, loading, error, markRead };
 }
 
-export function newCount(follows, posts, readIds) {
-  if (!posts?.length) return 0;
-  return posts.filter(p => follows[p.author_id] && !readIds.has(p.id)).length;
-}
-
 export function FeedTab({ follows, filter, setFilter, posts, readIds, markRead, authors }) {
   const authorList = (authors || []).filter(a => a.active !== false);
   const authorIds = authorList.map(a => a.id);
@@ -75,7 +72,8 @@ export function FeedTab({ follows, filter, setFilter, posts, readIds, markRead, 
   }
 
   const handlePostClick = (post) => {
-    markRead?.(post.id);
+    if (post._groupIds) post._groupIds.forEach(id => markRead?.(id));
+    else markRead?.(post.id);
     window.open(post.url, '_blank', 'noopener');
   };
 
@@ -111,12 +109,13 @@ export function FeedTab({ follows, filter, setFilter, posts, readIds, markRead, 
                 </div>
               </div>
               {authorPosts?.length ? authorPosts.map(p => {
-                const isUnread = !readIds.has(p.id);
+                const isUnread = p._groupIds ? p._groupIds.some(id => !readIds.has(id)) : !readIds.has(p.id);
+                const displayTitle = cleanTitle(p.title, a?.name);
                 return (
                   <div key={p.id} class="post-row" role="button" tabIndex={0} onClick={() => handlePostClick(p)} onKeyDown={e => e.key === 'Enter' && handlePostClick(p)}>
                     <div style="min-width:0;flex:1">
                       <span class={`tag ${isUnread ? 'new' : ''}`}>{isUnread ? t.feed.new : t.feed.kinds[p.kind] || p.kind}</span>
-                      <span class="post-title">{p.title}</span>
+                      <span class="post-title">{displayTitle}</span>
                     </div>
                     <span class="post-date">{formatDate(p.published_at)}</span>
                   </div>
