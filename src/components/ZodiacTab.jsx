@@ -1,6 +1,7 @@
 import { useState } from 'preact/hooks';
 import { STEM_EL, WUXING_HEX, luckyAnimals } from '../astro';
 import { t } from '../i18n';
+import { useDailyReading } from '../lib/readings.js';
 import { gz, animalName, dayMasterName } from './labels.js';
 import { Stars } from './Stars.jsx';
 import { Pillars, WuxingRadar } from './Wuxing.jsx';
@@ -12,6 +13,7 @@ export function ZodiacTab({ profile: p, day }) {
   const [gzChar, setGzChar] = useState(null);
   const Z = t.zodiac, a = day.alm, z = day.zodiac, w = p.wuxing;
   const [relName, focus, watch] = t.relations[z.rel];
+  const ai = useDailyReading(day.date, 'zodiac', p);
   const yi = a.yi, ji = a.ji;
   const dayEl = t.wuxing[STEM_EL[a.day[0]]];
   const lucky = w.luckyElement;
@@ -37,10 +39,10 @@ export function ZodiacTab({ profile: p, day }) {
       <div class="stack">
         <div class="card">
           <div class="label">{Z.keyLabel}</div>
-          <h2>{Z.keyTitle(relName, t.toneTitle[z.tone])}</h2>
-          <p>{focus}{z.boost ? Z.boost(dayEl, t.wuxing[lucky]) : ''}</p>
+          <h2>{ai?.headline || Z.keyTitle(relName, t.toneTitle[z.tone])}</h2>
+          <p>{ai?.body || (focus + (z.boost ? Z.boost(dayEl, t.wuxing[lucky]) : ''))}</p>
           <div class="scores">
-            {z.scores.map((v, i) => (
+            {(ai?.scores || z.scores).map((v, i) => (
               <div key={i}><span class="label">{t.scoreLabels[i]}</span><Stars label={t.scoreLabels[i]} value={v} /></div>
             ))}
           </div>
@@ -48,7 +50,7 @@ export function ZodiacTab({ profile: p, day }) {
 
         <div class="card watch">
           <div class="label">{Z.watchLabel}</div>
-          <p>{watch}</p>
+          <p>{ai?.watch_out || watch}</p>
         </div>
 
         <div class="lucky">
