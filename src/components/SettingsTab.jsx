@@ -18,7 +18,7 @@ export function pushPreview(p, day, prefs) {
 const TIMES = [];
 for (let h = 6; h <= 10; h++) for (let m = 0; m < 60; m += 15) TIMES.push(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`);
 
-export function SettingsTab({ profile: p, day, prefs, setPrefs, follows, setFollow, onEdit, onShowGuide, toast, feedAuthors, feedLoading, feedError }) {
+export function SettingsTab({ profile: p, day, prefs, setPrefs, follows, setFollow, onEdit, onShowGuide, toast }) {
   const S = t.settings;
   const pv = pushPreview(p, day, prefs);
   const [pushState, setPushState] = useState('loading');
@@ -28,11 +28,29 @@ export function SettingsTab({ profile: p, day, prefs, setPrefs, follows, setFoll
   const [showDiag, setShowDiag] = useState(false);
   const [diag, setDiag] = useState(null);
   const [swWaiting, setSwWaiting] = useState(false);
+  const [authors, setAuthors] = useState([]);
+  const [authorsLoading, setAuthorsLoading] = useState(true);
+  const [authorsError, setAuthorsError] = useState(null);
 
   useEffect(() => {
     checkPushState();
     checkSwUpdate();
+    loadAuthors();
   }, []);
+
+  async function loadAuthors() {
+    try {
+      const { supabase } = await import('../lib/supabase.js');
+      if (!supabase) { setAuthorsLoading(false); return; }
+      const { data, error } = await supabase.from('authors').select('id, name_zh, source_label, cadence, category, active').eq('active', true);
+      if (error) throw error;
+      setAuthors(data || []);
+    } catch (err) {
+      console.warn('settings: authors load failed', err);
+      setAuthorsError(err);
+    }
+    setAuthorsLoading(false);
+  }
 
   async function checkPushState() {
     if (needsHomeScreen()) { setPushState('needs-install'); return; }
@@ -223,9 +241,9 @@ export function SettingsTab({ profile: p, day, prefs, setPrefs, follows, setFoll
 
         <div class="card">
           <div class="label" style="margin-bottom:4px">{S.following}</div>
-          {feedLoading && <div class="why" style="padding:8px 0">{t.feed.authorsLoading}</div>}
-          {!feedLoading && feedError && <div class="why" style="padding:8px 0">{t.feed.authorsError}</div>}
-          {!feedLoading && !feedError && (feedAuthors || []).map(row => {
+          {authorsLoading && <div class="why" style="padding:8px 0">{t.feed.authorsLoading}</div>}
+          {!authorsLoading && authorsError && <div class="why" style="padding:8px 0">{t.feed.authorsError}</div>}
+          {!authorsLoading && !authorsError && authors.map(row => {
             const id = row.id;
             const a = t.authors[id] || { name: row.name_zh, where: row.source_label, cadence: row.cadence };
             return (
