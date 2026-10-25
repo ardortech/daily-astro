@@ -40,8 +40,9 @@ export function SettingsTab({ profile: p, day, prefs, setPrefs, follows, setFoll
 
   async function loadAuthors() {
     try {
-      const { supabase } = await import('../lib/supabase.js');
+      const { supabase, ensureUser } = await import('../lib/supabase.js');
       if (!supabase) { setAuthorsLoading(false); return; }
+      await ensureUser();
       const { data, error } = await supabase.from('authors').select('id, name_zh, source_label, cadence, category, active').eq('active', true);
       if (error) throw error;
       setAuthors(data || []);
@@ -242,7 +243,7 @@ export function SettingsTab({ profile: p, day, prefs, setPrefs, follows, setFoll
         <div class="card">
           <div class="label" style="margin-bottom:4px">{S.following}</div>
           {authorsLoading && <div class="why" style="padding:8px 0">{t.feed.authorsLoading}</div>}
-          {!authorsLoading && authorsError && <div class="why" style="padding:8px 0">{t.feed.authorsError}</div>}
+          {!authorsLoading && authorsError && <div class="why" style="padding:8px 0">{t.feed.authorsError}<br /><small style="opacity:.6">{authorsError.message || String(authorsError)}</small></div>}
           {!authorsLoading && !authorsError && authors.map(row => {
             const id = row.id;
             const a = t.authors[id] || { name: row.name_zh, where: row.source_label, cadence: row.cadence };
